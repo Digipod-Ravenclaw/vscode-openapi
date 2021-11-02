@@ -4,11 +4,20 @@
 */
 
 import * as vscode from "vscode";
+import {
+  find,
+  findNodeAtOffset,
+  joinJsonPointer,
+  findLocationForJsonPointer,
+} from "@xliic/preserving-json-yaml-parser";
 import { outlines } from "./outline";
 import * as snippets from "./generated/snippets.json";
-import { JsonNode, Node, YamlNode } from "@xliic/openapi-ast-node";
 import { Cache } from "./cache";
 import { OpenApiVersion } from "./types";
+
+type Node = any;
+type YamlNode = unknown;
+type JsonNode = any;
 
 const commands = {
   goToLine,
@@ -116,22 +125,10 @@ async function copyJsonReference(cache: Cache, range: vscode.Range) {
   const editor = vscode.window.activeTextEditor;
   const root = cache.getDocumentAst(editor.document);
   if (root) {
-    const node = root.findNodeAtOffset(editor.document.offsetAt(editor.selection.active));
-    copyNodeJsonReference(node);
-  }
-}
-
-function copyNodeJsonReference(node: Node) {
-  if (node) {
-    const pointer = node.getJsonPonter();
-    // JSON Pointer is allowed to have special chars, but JSON Reference
-    // requires these to be encoded
-    const encoded = pointer
-      .split("/")
-      .map((segment) => encodeURIComponent(segment))
-      .join("/");
-    vscode.env.clipboard.writeText(`#${encoded}`);
-    const disposable = vscode.window.setStatusBarMessage(`Copied Reference: #${encoded}`);
+    const [node, path] = findNodeAtOffset(root, editor.document.offsetAt(editor.selection.active));
+    const jsonPointer = joinJsonPointer(path);
+    vscode.env.clipboard.writeText(`#${jsonPointer}`);
+    const disposable = vscode.window.setStatusBarMessage(`Copied Reference: #${jsonPointer}`);
     setTimeout(() => disposable.dispose(), 1000);
   }
 }
@@ -177,7 +174,8 @@ function copySelectedThreeSecurityOutlineJsonReference(cache: Cache) {
 }
 
 function copySelectedJsonReference(viewId: string) {
-  copyNodeJsonReference(outlines[viewId].selection[0]);
+  // FIXME
+  //copyNodeJsonReference(outlines[viewId].selection[0]);
 }
 
 async function createNew(snippet: string, language: string) {
@@ -358,16 +356,16 @@ async function insertYamlSnippetAfter(
   snippet: string,
   pointer: string
 ) {
-  const node = root.find(pointer);
+  const location = findLocationForJsonPointer(root, pointer);
 
   const eol = editor.document.eol === vscode.EndOfLine.CRLF ? "\r\n" : "\n";
   await editor.edit((builder) => {
-    builder.insert(editor.document.positionAt(node.node.endPosition), eol);
+    builder.insert(editor.document.positionAt(location.value.end), eol);
   });
 
   await editor.insertSnippet(
     new vscode.SnippetString(`${snippet}`),
-    editor.document.positionAt(node.node.endPosition + eol.length)
+    editor.document.positionAt(location.value.end + eol.length)
   );
 }
 
@@ -401,12 +399,14 @@ async function insertYamlSnippetInto(
   snippet: string,
   pointer: string
 ) {
+  /* FIXME
   const ynode = root.find(pointer).node;
 
   await editor.insertSnippet(
     new vscode.SnippetString(`${snippet}\n`),
     editor.document.positionAt(ynode.value.startPosition)
   );
+  */
 }
 
 async function insertJsonSnippetInto(
@@ -450,7 +450,7 @@ async function insertSnippetIntoRoot(
 
   if (languageId === "yaml") {
     let snippet = snippets[`${snippetName}Yaml`];
-    if (root.find(`/${element}`)) {
+    if (find(root, `/${element}`)) {
       await insertYamlSnippetInto(editor, <YamlNode>root, snippet, `/${element}`);
     } else {
       const target = findInsertionAnchor(root, element);
@@ -545,7 +545,7 @@ function findInsertionAnchor(root: Node, element: string): string {
   const desiredPosition = topTags.indexOf(element) - 1;
   let position = desiredPosition;
   for (; position >= 0; position--) {
-    if (root.find(`/${topTags[position]}`)) {
+    if (find(root, `/${topTags[position]}`)) {
       break;
     }
   }

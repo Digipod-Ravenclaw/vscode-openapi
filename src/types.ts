@@ -1,5 +1,4 @@
 import * as vscode from "vscode";
-import { Node } from "@xliic/openapi-ast-node";
 
 export const configId = "openapi";
 export const extensionQualifiedId = "42Crunch.vscode-openapi";
@@ -8,6 +7,8 @@ export enum OpenApiVersion {
   V2,
   V3,
 }
+
+type Node = any;
 
 export interface Mapping {
   uri: string;

@@ -319,7 +319,8 @@ async function getJsonFromAST(
   cache: Cache
 ): Promise<any> {
   // FIXME check if targert contains a $ref (possibly to an external document) and follow it
-  return parse(target);
+  // FIXME migration from ast
+  // return parse(target);
 }
 
 function hasId(id: string, problem: string[]): boolean {

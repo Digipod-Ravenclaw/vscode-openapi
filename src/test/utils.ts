@@ -7,11 +7,9 @@ import * as vscode from "vscode";
 import { TestFS } from "./memfs";
 import * as assert from "assert";
 import { readFileSync } from "fs";
-import * as yaml from "yaml-language-server-parser";
-import * as json from "jsonc-parser";
-import { JsonNode, YamlNode } from "@xliic/openapi-ast-node";
 import { workspace, window, TextEditor, TextDocument } from "vscode";
 import { FixContext } from "../types";
+import { parseJson, parseYaml } from "@xliic/preserving-json-yaml-parser";
 
 export function rndName() {
   return Math.random()
@@ -88,18 +86,8 @@ export function withLogDisabled(runnable: () => Promise<any>): () => Promise<voi
   };
 }
 
-export function parseJson(text) {
-  const jsonTree = json.parseTree(text);
-  return new JsonNode(jsonTree);
-}
-
 export function loadJson(filename) {
   return parseJson(readFileSync(filename, { encoding: "utf8" }));
-}
-
-export function parseYaml(text) {
-  const yamlTree = yaml.load(text);
-  return new YamlNode(yamlTree);
 }
 
 export function loadYaml(filename) {
