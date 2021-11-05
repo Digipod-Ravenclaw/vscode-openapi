@@ -17,6 +17,7 @@ import { AuditContext, Audit, Grades, Issue, ReportedIssue, IssuesByDocument } f
 
 import { Cache } from "../cache";
 import { getLocationByPointer } from "./util";
+import { promptForTokens } from "./signup";
 import { stringify } from "@xliic/preserving-json-yaml-parser";
 
 export function registerSecurityAudit(
@@ -110,7 +111,10 @@ async function securityAudit(
   const configuration = vscode.workspace.getConfiguration("openapi");
   let apiToken = <string>configuration.get("securityAuditToken");
 
-  if (!apiToken) {
+  if (true || !apiToken) {
+    const t = await promptForTokens();
+    return;
+
     const email = await vscode.window.showInputBox({
       prompt:
         "Security Audit from 42Crunch runs ~200 checks for security best practices in your API. VS Code needs an API key to use the service. Enter your email to receive the token.",

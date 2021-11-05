@@ -25,6 +25,7 @@ import { Cache } from "./cache";
 import * as yamlSchemaContributor from "./yaml-schema-contributor";
 import * as audit from "./audit/activate";
 import * as preview from "./preview";
+import * as platform from "./platform/activate";
 
 export function activate(context: vscode.ExtensionContext) {
   const versionProperty = "openapiVersion";
@@ -89,6 +90,7 @@ export function activate(context: vscode.ExtensionContext) {
   yamlSchemaContributor.activate(context, cache);
   audit.activate(context, cache);
   preview.activate(context, cache);
+  platform.activate(context, cache);
 
   if (previousVersion.major < currentVersion.major) {
     createWhatsNewPanel(context);
