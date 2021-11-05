@@ -24,7 +24,7 @@
     "api"
   ],
   "engines": {
-    "vscode": "^1.46.0"
+    "vscode": "^1.61.0"
   },
   "extensionDependencies": [
     "redhat.vscode-yaml"
@@ -59,10 +59,21 @@
           "id": "openapi-explorer",
           "title": "OpenAPI",
           "icon": "resources/icons/icon_api.svg"
+        },
+        {
+          "id": "collections-explorer",
+          "title": "Collections",
+          "icon": "resources/icons/collections_icon.svg"
         }
       ]
     },
     "views": {
+      "collections-explorer": [
+        {
+          "id": "collectionsExplorer",
+          "name": "Collections"
+        }
+      ],
       "openapi-explorer": [
         {
           "id": "openapiTwoSpecOutline",
@@ -517,6 +528,31 @@
       "type": "object",
       "title": "OpenAPI",
       "properties": {
+        "openapi.authType": {
+          "scope": "workbench",
+          "type": "string",
+          "default": "token",
+          "enum": [
+            "token",
+            "platform"
+          ],
+          "enumDescriptions": [
+            "Email token authentication",
+            "42Crunch platform API token authentication"
+          ]
+        },
+        "openapi.platformApiToken": {
+          "scope": "workbench",
+          "type": "string",
+          "default": null,
+          "description": "42Crunch platform API token"
+        },
+        "openapi.platformUrl": {
+          "scope": "workbench",
+          "type": "string",
+          "default": "https://platform.42crunch.com",
+          "description": "42Crunch platform URL"
+        },
         "openapi.securityAuditToken": {
           "scope": "workbench",
           "type": "string",
@@ -578,7 +614,7 @@
     "@types/node": "^14.14.31",
     "@types/react": "^16.9.48",
     "@types/semver": "^6.2.0",
-    "@types/vscode": "1.46.0",
+    "@types/vscode": "1.61.0",
     "@typescript-eslint/eslint-plugin": "^3.0.2",
     "@typescript-eslint/parser": "^3.0.2",
     "css-loader": "^5.2.4",
