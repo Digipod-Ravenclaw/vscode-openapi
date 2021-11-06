@@ -212,9 +212,7 @@ export class PathOutlineProvider extends OutlineProvider {
   getLabel(node: Node): string {
     if ((node.depth === 4 || node.depth === 5) && node.parent.key == "parameters") {
       // return label for a parameter
-      const ref = node.value["$ref"];
-      const name = node.value["name"];
-      const label = (ref && ref.getValue()) || (name && name.getValue());
+      const label = node.value["$ref"] || node.value["name"];
       if (!label) {
         return "<unknown>";
       }

@@ -10,14 +10,14 @@ import { BundleResult, BundlingError, OpenApiVersion } from "./types";
 import { parseToAst } from "./parsers";
 import { configuration } from "./configuration";
 import { bundle } from "./bundler";
-import { find, findLocationForJsonPointer } from "@xliic/preserving-json-yaml-parser";
+import { find, findLocationForJsonPointer, Parsed } from "@xliic/preserving-json-yaml-parser";
 
 interface ParsedDocument {
   documentVersion: number;
   openApiVersion: OpenApiVersion;
-  lastGoodAstRoot?: any;
-  astRoot?: any;
-  parsed?: any;
+  lastGoodAstRoot?: Parsed;
+  astRoot?: Parsed;
+  parsed?: Parsed;
   errors: vscode.Diagnostic[];
 }
 
@@ -309,11 +309,11 @@ export class Cache implements vscode.Disposable {
     return document ? this.parsedDocuments.get(document).openApiVersion : OpenApiVersion.Unknown;
   }
 
-  getDocumentAst(document: vscode.TextDocument): any | undefined {
+  getDocumentAst(document: vscode.TextDocument): Parsed | undefined {
     return this.parsedDocuments.get(document).astRoot;
   }
 
-  getLastGoodDocumentAst(document: vscode.TextDocument): any | undefined {
+  getLastGoodDocumentAst(document: vscode.TextDocument): Parsed | undefined {
     return this.parsedDocuments.get(document).lastGoodAstRoot;
   }
 

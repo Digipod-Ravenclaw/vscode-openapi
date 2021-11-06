@@ -438,6 +438,8 @@ export class AuditCodeActions implements vscode.CodeActionProvider {
   ): Promise<vscode.CodeAction[]> {
     const actions: vscode.CodeAction[] = [];
 
+    // FIXME
+    /*
     const uri = document.uri.toString();
     const audit = this.auditContext.auditsByDocument[uri];
     const issues = audit?.issues[uri];
@@ -503,6 +505,7 @@ export class AuditCodeActions implements vscode.CodeActionProvider {
 
     actions.push(...createCombinedAction(combinedIssues, titles, problems, parameters, fixObject));
 
+    */
     return actions;
   }
 }

@@ -26,6 +26,8 @@ export async function generateSchemaFixCommand(
   auditContext: AuditContext,
   cache: Cache
 ) {
+  // FIXME
+  /* 
   const document = editor.document;
   const uri = document.uri.toString();
   const audit = auditContext.auditsByDocument[uri];
@@ -56,6 +58,7 @@ export async function generateSchemaFixCommand(
     }
   }
   updateReport(editor, [issue], auditContext, cache);
+  */
 }
 
 export function createGenerateSchemaAction(
@@ -165,6 +168,8 @@ async function insertSchemaByRef(
   auditContext: AuditContext,
   cache: Cache
 ) {
+  // FIXME
+  /*
   const document = editor.document;
   const uri = document.uri.toString();
   const audit = auditContext.auditsByDocument[uri];
@@ -283,6 +288,7 @@ async function insertSchemaByRef(
   if (edit) {
     await vscode.workspace.applyEdit(edit);
   }
+  */
 }
 
 async function astToJsonSchema(

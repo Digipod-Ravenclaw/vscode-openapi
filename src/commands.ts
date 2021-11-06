@@ -9,15 +9,16 @@ import {
   findNodeAtOffset,
   joinJsonPointer,
   findLocationForJsonPointer,
+  Parsed,
 } from "@xliic/preserving-json-yaml-parser";
 import { outlines } from "./outline";
 import * as snippets from "./generated/snippets.json";
 import { Cache } from "./cache";
 import { OpenApiVersion } from "./types";
 
-type Node = any;
-type YamlNode = unknown;
-type JsonNode = any;
+type Node = Parsed;
+type YamlNode = Parsed;
+type JsonNode = Parsed;
 
 const commands = {
   goToLine,
