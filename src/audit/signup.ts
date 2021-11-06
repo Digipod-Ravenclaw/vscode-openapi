@@ -32,8 +32,8 @@ export async function promptForTokens(): Promise<AuthToken | undefined> {
 
 async function requestPlatformToken(): Promise<PlatformToken | undefined> {
   const platform = await window.showInputBox({
-    prompt: "Enter platform",
-    placeHolder: "platform",
+    prompt: "Enter 42Crunch platform URL",
+    placeHolder: "platform url",
   });
 
   if (platform === undefined) {
@@ -41,8 +41,8 @@ async function requestPlatformToken(): Promise<PlatformToken | undefined> {
   }
 
   const token = await window.showInputBox({
-    prompt: "Enter token",
-    placeHolder: "token",
+    prompt: "Enter 42Crunch API token",
+    placeHolder: "api token",
     ignoreFocusOut: true,
   });
 
