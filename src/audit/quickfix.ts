@@ -26,10 +26,13 @@ import { ReportWebView } from "./report";
 import {
   deleteJsonNode,
   deleteYamlNode,
+  getChildren,
   getFixAsJsonString,
   getFixAsYamlString,
+  getKeys,
   insertJsonNode,
   insertYamlNode,
+  isObject,
   renameKeyNode,
   replaceJsonNode,
   replaceYamlNode,
@@ -37,8 +40,8 @@ import {
 import { Cache } from "../cache";
 import parameterSources from "./quickfix-sources";
 import { getLocationByPointer } from "./util";
-import { generateSchemaFixCommand, createGenerateSchemaAction } from "./quickfix-schema";
-import { simpleClone } from "@xliic/preserving-json-yaml-parser";
+//import { generateSchemaFixCommand, createGenerateSchemaAction } from "./quickfix-schema";
+import { find, simpleClone } from "@xliic/preserving-json-yaml-parser";
 
 const registeredQuickFixes: { [key: string]: Fix } = {};
 
@@ -135,10 +138,10 @@ function transformInsertToReplaceIfExists(context: FixContext): boolean {
   const fix = <InsertReplaceRenameFix>context.fix;
 
   const keys = Object.keys(fix.fix);
-  if (target.isObject() && keys.length === 1) {
+  if (isObject(target) && keys.length === 1) {
     const insertingKey = keys[0];
-    for (let child of target.getChildren()) {
-      if (child.getKey() === insertingKey) {
+    for (let key of getKeys(target)) {
+      if (key === insertingKey) {
         context.pointer = `${pointer}/${insertingKey}`;
         context.target = context.root.find(context.pointer);
         context.fix = {
@@ -187,7 +190,7 @@ async function quickFixCommand(
     // if fix.pointer exists, append it to diagnostic.pointer
     const pointer = fix.pointer ? `${issuePointer}${fix.pointer}` : issuePointer;
     const root = cache.getLastGoodDocumentAst(document);
-    const target = root.find(pointer);
+    const target = find(root, pointer);
 
     const context: FixContext = {
       editor: editor,
@@ -299,11 +302,11 @@ export function registerQuickfixes(
     async (editor, edit, issues, fix) => quickFixCommand(editor, issues, fix, auditContext, cache)
   );
 
-  vscode.commands.registerTextEditorCommand(
-    "openapi.generateSchemaQuickFix",
-    async (editor, edit, issue, fix, examples, inline) =>
-      generateSchemaFixCommand(editor, issue, fix, examples, inline, auditContext, cache)
-  );
+  // vscode.commands.registerTextEditorCommand(
+  //   "openapi.generateSchemaQuickFix",
+  //   async (editor, edit, issue, fix, examples, inline) =>
+  //     generateSchemaFixCommand(editor, issue, fix, examples, inline, auditContext, cache)
+  // );
 
   vscode.languages.registerCodeActionsProvider("yaml", new AuditCodeActions(auditContext, cache), {
     providedCodeActionKinds: AuditCodeActions.providedCodeActionKinds,
@@ -438,8 +441,6 @@ export class AuditCodeActions implements vscode.CodeActionProvider {
   ): Promise<vscode.CodeAction[]> {
     const actions: vscode.CodeAction[] = [];
 
-    // FIXME
-    /*
     const uri = document.uri.toString();
     const audit = this.auditContext.auditsByDocument[uri];
     const issues = audit?.issues[uri];
@@ -483,9 +484,9 @@ export class AuditCodeActions implements vscode.CodeActionProvider {
       actions.push(
         ...createBulkAction(document, version, bundle, diagnostic, issue[0], issues, fix)
       );
-      actions.push(
-        ...createGenerateSchemaAction(document, version, root, diagnostic, issue[0], fix)
-      );
+      // actions.push(
+      //   ...createGenerateSchemaAction(document, version, root, diagnostic, issue[0], fix)
+      // );
 
       // Combined Fix
       if (fix.type == FixType.Insert && !fix.pointer && !Array.isArray(fix.fix)) {
@@ -505,7 +506,6 @@ export class AuditCodeActions implements vscode.CodeActionProvider {
 
     actions.push(...createCombinedAction(combinedIssues, titles, problems, parameters, fixObject));
 
-    */
     return actions;
   }
 }

@@ -6,6 +6,10 @@ import { replace } from "@xliic/openapi-ast-node";
 import { InsertReplaceRenameFix, FixType, FixContext } from "./types";
 import parameterSources from "./audit/quickfix-sources";
 import { topTags } from "./commands";
+import { getType } from "./audit/schema";
+import { Container } from "@xliic/preserving-json-yaml-parser/lib/types";
+import { getPreservedLocation } from "@xliic/preserving-json-yaml-parser/lib/preserve";
+import { find } from "@xliic/preserving-json-yaml-parser";
 
 function getBasicIndentation(document: vscode.TextDocument, root: Node): [number, string] {
   let target: Node;
@@ -124,17 +128,15 @@ export function insertJsonNode(context: FixContext, value: string): [string, vsc
   const root = context.root;
   const target = context.target;
   const snippet = context.snippet;
-  let lastChildTarget: Node;
-  const children = target.getChildren();
+  const ranges = getRanges(target);
   const [indent, char] = getBasicIndentation(document, root);
   let start: number, end: number;
   let comma = ",";
 
   // Insert pointer is either {} or [], nothing else
-  if (children) {
-    if (children.length > 0) {
-      lastChildTarget = children[children.length - 1];
-      [start, end] = lastChildTarget.getRange();
+  if (ranges) {
+    if (ranges.length > 0) {
+      [start, end] = ranges[ranges.length - 1];
     } else {
       [start, end] = target.getRange();
       start += 1;
@@ -258,8 +260,8 @@ export function getFixAsJsonString(context: FixContext): string {
   if (snippet && (type === FixType.Insert || type === FixType.Replace)) {
     text = text.replace(new RegExp("\\$ref", "g"), "\\$ref");
   }
-  const target = root.find(pointer);
-  if (target.isObject() && type === FixType.Insert) {
+  const target = find(root, pointer);
+  if (isObject(target) && type === FixType.Insert) {
     text = text.replace("{\n\t", "");
     text = text.replace("\n}", "");
     // Replace only trailing \t, i.e. a\t\t\ta\t\ta\t -> a\t\ta\ta
@@ -387,4 +389,51 @@ export function safeParse(text: string, languageId: string): Node {
     throw new Error("Can't parse OpenAPI file");
   }
   return root;
+}
+
+export function getKeys(value: any, keepOrder?: boolean): any[] {
+  const keys = Object.keys(value);
+  if (keepOrder && keys.length > 1) {
+    const container = value as Container;
+    keys.sort(function (key1: string | number, key2: string | number) {
+      const loc1 = getPreservedLocation(container, key1);
+      const loc2 = getPreservedLocation(container, key2);
+      return loc1.key.start - loc2.key.start;
+    });
+  }
+  return keys;
+}
+
+export function getChildren(value: any, keepOrder?: boolean): any[] {
+  const children = [];
+  for (const key of getKeys(value, keepOrder)) {
+    children.push(value[key]);
+  }
+  return children;
+}
+
+export function getRanges(value: any): any[] {
+  const ranges = [];
+  const container = value as Container;
+  for (const key of getKeys(value, true)) {
+    const loc = getPreservedLocation(container, key);
+    if (loc.key) {
+      ranges.push([loc.key.start, loc.value.end]);
+    } else {
+      ranges.push([loc.value.start, loc.value.end]);
+    }
+  }
+  return ranges;
+}
+
+// export function getRange(value: any): {
+
+// }
+
+export function isObject(value: any): boolean {
+  return getType(value) === "object";
+}
+
+export function isArray(value: any): boolean {
+  return getType(value) === "array";
 }
