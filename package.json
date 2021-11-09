@@ -62,17 +62,17 @@
           "icon": "resources/icons/icon_api.svg"
         },
         {
-          "id": "collections-explorer",
-          "title": "Collections",
-          "icon": "resources/icons/collections_icon.svg"
+          "id": "42crunch-platform",
+          "title": "42Crunch Platform",
+          "icon": "resources/icons/icon_42crunch_platform.svg"
         }
       ]
     },
     "views": {
-      "collections-explorer": [
+      "42crunch-platform": [
         {
           "id": "collectionsExplorer",
-          "name": "Collections"
+          "name": "API Collections"
         }
       ],
       "openapi-explorer": [

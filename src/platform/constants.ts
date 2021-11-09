@@ -6,5 +6,3 @@
 export const MAX_NAME_LEN = 2048;
 export const ASSESSMENT_MAX_WAIT = 60000;
 export const ASSESSMENT_RETRY = 5000;
-export const SCAN_MAX_WAIT = 60000;
-export const SCAN_RETRY = 5000;

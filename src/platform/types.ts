@@ -3,6 +3,34 @@
  Licensed under the GNU Affero General Public License version 3. See LICENSE.txt in the project root for license information.
 */
 
+export interface ListCollectionsResponse {
+  list: CollectionData[];
+}
+
+export interface ListApisResponse {
+  list: ApiData[];
+}
+
+export interface ApiData {
+  desc: {
+    id: string;
+    name: string;
+  };
+}
+
+export interface CollectionData {
+  desc: {
+    id: string;
+    name: string;
+    technicalName: string;
+  };
+  summary: {
+    apis: number;
+  };
+}
+
+// GOOD ABOVE
+
 export interface ApiStatus {
   isAssessmentProcessed: boolean;
   lastAssessment: Date;
@@ -15,17 +43,6 @@ export interface ApiResponse {
     id: string;
     name: string;
     technicalName: string;
-  };
-}
-
-export interface CollectionResponse {
-  desc: {
-    id: string;
-    name: string;
-    technicalName: string;
-  };
-  summary: {
-    apis: number;
   };
 }
 
@@ -115,11 +132,6 @@ export interface SeverityPerCategory {
 
 export interface Mapping {
   [k: string]: string;
-}
-
-export enum SharingType {
-  ReadOnly,
-  ReadWrite,
 }
 
 export interface Options {
