@@ -25,7 +25,7 @@ export function getLocationByPointer(
   }
 
   if (location) {
-    const start = location.value.start;
+    const start = location.key ? location.key.start : location.value.start;
     const position = document.positionAt(start);
     const line = document.lineAt(position.line);
     const range = new vscode.Range(
