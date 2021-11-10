@@ -1,7 +1,8 @@
 import * as vscode from "vscode";
+import { newItems } from "yaml-language-server-parser";
 
 import { listApis, listCollections } from "./api";
-import { Options, ApiData, CollectionData } from "./types";
+import { Options, Api, CollectionData } from "./types";
 
 export interface Node {
   hasChildren(): boolean;
@@ -29,6 +30,10 @@ export class RootNode implements Node {
 export class CollectionNode implements Node {
   constructor(private data: CollectionData, private options: Options) {}
 
+  public getCollectionId(): string {
+    return this.data.desc.id;
+  }
+
   public hasChildren(): boolean {
     return this.data.summary.apis > 0;
   }
@@ -39,17 +44,19 @@ export class CollectionNode implements Node {
   }
 
   getTreeItem(): vscode.TreeItem {
-    return new vscode.TreeItem(
+    const item = new vscode.TreeItem(
       this.data.desc.name,
       this.hasChildren()
         ? vscode.TreeItemCollapsibleState.Collapsed
         : vscode.TreeItemCollapsibleState.None
     );
+    item.contextValue = "collection";
+    return item;
   }
 }
 
 export class ApiNode implements Node {
-  constructor(private data: ApiData, private options: Options) {}
+  constructor(private data: Api, private options: Options) {}
 
   getTreeItem(): vscode.TreeItem {
     const item = new vscode.TreeItem(
@@ -60,6 +67,7 @@ export class ApiNode implements Node {
     );
 
     item.iconPath = vscode.ThemeIcon.File;
+    item.contextValue = "api";
     return item;
 
     /*
@@ -81,11 +89,21 @@ export class ApiNode implements Node {
 }
 
 export class AuditNode implements Node {
-  constructor(private data: ApiData, private options: Options) {}
+  constructor(private data: Api, private options: Options) {}
 
   getTreeItem(): vscode.TreeItem {
-    const item = new vscode.TreeItem("Security audit report", vscode.TreeItemCollapsibleState.None);
+    const item = new vscode.TreeItem(
+      `Audit score: ${this.data.assessment.grade}`,
+      vscode.TreeItemCollapsibleState.None
+    );
     item.iconPath = vscode.ThemeIcon.File;
+
+    // item.command = {
+    //   command: "openapi.platform.showAudit",
+    //   title: "",
+    //   arguments: [this.data.desc.id],
+    // };
+
     return item;
   }
 
@@ -99,11 +117,18 @@ export class AuditNode implements Node {
 }
 
 export class OasNode implements Node {
-  constructor(private data: ApiData, private options: Options) {}
+  constructor(private data: Api, private options: Options) {}
 
   getTreeItem(): vscode.TreeItem {
     const item = new vscode.TreeItem("OpenAPI definition", vscode.TreeItemCollapsibleState.None);
     item.iconPath = vscode.ThemeIcon.File;
+
+    item.command = {
+      command: "openapi.platform.editApi",
+      title: "",
+      arguments: [this.data.desc.id],
+    };
+
     return item;
   }
 

@@ -6,7 +6,6 @@
 import * as vscode from "vscode";
 import { configuration } from "../configuration";
 import { Options } from "./types";
-import { readApiStatus2 } from "./api";
 
 export class ApiDocumentProvider
   implements
@@ -77,7 +76,7 @@ export class ApiDocumentProvider
       },
     };
 
-    const api = await readApiStatus2(uri.path, options);
+    const api = null; // await readApiStatus2(uri.path, options);
 
     return `API Name: ${api.desc.name}
 API ID: ${api.desc.id}

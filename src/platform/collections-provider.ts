@@ -5,24 +5,23 @@ import { Node, RootNode } from "./collection-node";
 import { Options } from "./types";
 
 export class CollectionsProvider implements vscode.TreeDataProvider<Node> {
-  onDidChangeTreeData?: vscode.Event<void | Node>;
+  //onDidChangeTreeData?: vscode.Event<void | Node>;
+
+  private _onDidChangeTreeData: vscode.EventEmitter<void> = new vscode.EventEmitter<void>();
+  readonly onDidChangeTreeData: vscode.Event<void> = this._onDidChangeTreeData.event;
+
   root: RootNode;
 
-  constructor() {
-    const options: Options = {
-      platformUrl: configuration.get("platformUrl"),
-      apiToken: configuration.get("platformApiToken"),
-      userAgent: "foo",
-      referer: "bar",
-      logger: {
-        fatal: (message: string) => null,
-        error: (message: string) => null,
-        warning: (message: string) => null,
-        info: (message: string) => null,
-        debug: (message: string) => null,
-      },
-    };
+  constructor(private options: Options) {
     this.root = new RootNode(options);
+  }
+
+  getParent?(element: Node): vscode.ProviderResult<Node> {
+    return null;
+  }
+
+  refresh() {
+    this._onDidChangeTreeData.fire();
   }
 
   getTreeItem(element: Node): vscode.TreeItem | Thenable<vscode.TreeItem> {

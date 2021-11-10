@@ -8,14 +8,33 @@ export interface ListCollectionsResponse {
 }
 
 export interface ListApisResponse {
-  list: ApiData[];
+  list: Api[];
 }
 
-export interface ApiData {
-  desc: {
-    id: string;
-    name: string;
-  };
+export interface Api {
+  desc: ApiDescriptor;
+  assessment: AssessSummary;
+}
+
+export interface ApiDescriptor {
+  id: string;
+  cid: string;
+  name: string;
+  technicalName: string;
+  specfile?: string;
+}
+
+export interface AssessSummary {
+  isProcessed: boolean;
+  grade: number;
+  numErrors: number;
+  numInfos: number;
+  numLows: number;
+  numMediums: number;
+  numHighs: number;
+  numCriticals: number;
+  releasable: boolean;
+  oasVersion: string;
 }
 
 export interface CollectionData {
@@ -78,18 +97,6 @@ export interface ApiErrors {
       description: string | null;
     };
   };
-}
-
-export interface Api {
-  id: string;
-  previousStatus: ApiStatus;
-  mapping?: MappingTreeNode;
-}
-
-export type FileMap = Map<string, Api | ApiErrors>;
-
-export interface FileApiIdMap {
-  [filename: string]: string;
 }
 
 export interface Issue {

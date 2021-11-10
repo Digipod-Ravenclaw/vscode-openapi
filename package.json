@@ -63,7 +63,7 @@
         },
         {
           "id": "42crunch-platform",
-          "title": "42Crunch Platform",
+          "title": "42Crunch",
           "icon": "resources/icons/icon_42crunch_platform.svg"
         }
       ]
@@ -308,6 +308,10 @@
         {
           "command": "openapi.copySelectedThreeSecurityOutlineJsonReference",
           "when": "!openapiErrors && view == openapiThreeSecurityOutline"
+        },
+        {
+          "command": "openapi.platform.createCollection",
+          "when": "view == collectionsExplorer"
         }
       ],
       "view/item/context": [
@@ -320,10 +324,48 @@
           "command": "openapi.addOperation",
           "group": "inline",
           "when": "!openapiErrors && view == openapiThreePathOutline && viewItem == path"
+        },
+        {
+          "command": "openapi.platform.deleteCollection",
+          "when": "view == collectionsExplorer && viewItem == collection"
+        },
+        {
+          "command": "openapi.platform.deleteApi",
+          "when": "view == collectionsExplorer && viewItem == api"
+        },
+        {
+          "command": "openapi.platform.renameApi",
+          "when": "view == collectionsExplorer && viewItem == api"
+        },
+        {
+          "command": "openapi.platform.createApi",
+          "when": "view == collectionsExplorer && viewItem == collection"
         }
       ]
     },
     "commands": [
+      {
+        "command": "openapi.platform.deleteCollection",
+        "enablement": "view == collectionsExplorer && viewItem == collection",
+        "title": "Delete"
+      },
+      {
+        "command": "openapi.platform.deleteApi",
+        "title": "Delete",
+        "enablement": "view == collectionsExplorer && viewItem == api"
+      },
+      {
+        "command": "openapi.platform.createCollection",
+        "title": "Create new collection"
+      },
+      {
+        "command": "openapi.platform.renameApi",
+        "title": "Rename"
+      },
+      {
+        "command": "openapi.platform.createApi",
+        "title": "Import API"
+      },
       {
         "command": "openapi.v3addServer",
         "title": "OpenAPI: add server"
