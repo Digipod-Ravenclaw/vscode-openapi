@@ -108,6 +108,27 @@ export async function deleteApi(apiId: string, options: Options) {
   await got(`api/v1/apis/${apiId}`, gotOptions("DELETE", options));
 }
 
+export async function createApi(
+  collectionId: string,
+  name: string,
+  contents: Buffer,
+  options: Options
+): Promise<Api> {
+  const form = new FormData();
+  form.append("specfile", contents.toString("utf-8"), {
+    filename: "swagger.json",
+    contentType: "application/json",
+  });
+  form.append("name", name);
+  form.append("cid", collectionId);
+  const { body } = <any>await got("api/v1/apis", {
+    ...gotOptions("POST", options),
+    body: form,
+  });
+
+  return body;
+}
+
 export async function createCollection(name: string, options: Options): Promise<CollectionData> {
   const { body } = <any>await got("api/v1/collections", {
     ...gotOptions("POST", options),

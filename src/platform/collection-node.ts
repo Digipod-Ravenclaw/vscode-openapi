@@ -58,6 +58,10 @@ export class CollectionNode implements Node {
 export class ApiNode implements Node {
   constructor(private data: Api, private options: Options) {}
 
+  public getApiId(): string {
+    return this.data.desc.id;
+  }
+
   getTreeItem(): vscode.TreeItem {
     const item = new vscode.TreeItem(
       this.data.desc.name,

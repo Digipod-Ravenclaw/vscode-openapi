@@ -4,11 +4,11 @@
 */
 
 import * as vscode from "vscode";
-import { parseAuditReport } from "../audit/audit";
+import { stringify } from "@xliic/preserving-json-yaml-parser";
 import { Cache } from "../cache";
 import { configuration } from "../configuration";
-import { createCollection, deleteCollection, readAssessmentReport } from "./api";
-import { CollectionNode } from "./collection-node";
+import { createApi, createCollection, deleteApi, deleteCollection } from "./api";
+import { ApiNode, CollectionNode } from "./collection-node";
 import { CollectionsProvider } from "./collections-provider";
 import { Editor } from "./editor";
 import { Options } from "./types";
@@ -73,8 +73,33 @@ export function activate(context: vscode.ExtensionContext, cache: Cache) {
       });
 
       if (uri) {
-        const document = vscode.workspace.openTextDocument(uri[0]);
+        const document = await vscode.workspace.openTextDocument(uri[0]);
+
+        // TODO handle bundling errors
+        const bundle = await cache.getDocumentBundle(document);
+        if (!bundle || "errors" in bundle) {
+          return;
+        }
+
+        const title = bundle.value.info.title;
+
+        const json = stringify(bundle.value);
+        const api = await createApi(
+          collection.getCollectionId(),
+          title,
+          Buffer.from(json),
+          options
+        );
+        treeDataProvider.refresh();
+        // FIXME improve getParent() implementation in tree data provider
+        //const apiNode = new ApiNode(api, options);
+        //tree.reveal(apiNode, { focus: true });
       }
     }
   );
+
+  vscode.commands.registerCommand("openapi.platform.deleteApi", async (api: ApiNode) => {
+    await deleteApi(api.getApiId(), options);
+    treeDataProvider.refresh();
+  });
 }
