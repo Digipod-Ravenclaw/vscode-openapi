@@ -16,6 +16,10 @@ export class CollectionsProvider implements vscode.TreeDataProvider<Node> {
     this.root = new RootNode(options);
   }
 
+  setFilter(filter: string) {
+    this.root.setFilter(filter);
+  }
+
   getParent?(element: Node): vscode.ProviderResult<Node> {
     return null;
   }

@@ -12,8 +12,13 @@ import { ApiNode, CollectionNode } from "./collection-node";
 import { CollectionsProvider } from "./collections-provider";
 import { Editor } from "./editor";
 import { Options } from "./types";
+import { AuditContext } from "../types";
 
-export function activate(context: vscode.ExtensionContext, cache: Cache) {
+export function activate(
+  context: vscode.ExtensionContext,
+  auditContext: AuditContext,
+  cache: Cache
+) {
   const options: Options = {
     platformUrl: configuration.get("platformUrl"),
     apiToken: configuration.get("platformApiToken"),
@@ -29,12 +34,18 @@ export function activate(context: vscode.ExtensionContext, cache: Cache) {
   };
 
   const treeDataProvider = new CollectionsProvider(options);
-  const tree = vscode.window.createTreeView("collectionsExplorer", {
+  const tree = vscode.window.createTreeView("platformExplorer", {
     treeDataProvider,
   });
 
   vscode.commands.registerCommand("openapi.platform.editApi", (apiId) => {
-    const editor = new Editor(apiId, context, options);
+    const editor = new Editor(apiId, context, auditContext, cache, options);
+
+    // unsubscribe?
+    const disposable = vscode.workspace.onDidSaveTextDocument((document) => {
+      editor.onDidSaveTextDocument(document);
+    });
+
     editor.show();
   });
 
@@ -100,6 +111,20 @@ export function activate(context: vscode.ExtensionContext, cache: Cache) {
 
   vscode.commands.registerCommand("openapi.platform.deleteApi", async (api: ApiNode) => {
     await deleteApi(api.getApiId(), options);
+    treeDataProvider.refresh();
+  });
+
+  vscode.commands.registerCommand("openapi.platform.filterCollections", async () => {
+    const filter = await vscode.window.showInputBox({
+      prompt: "Filter",
+    });
+
+    treeDataProvider.setFilter(filter);
+    treeDataProvider.refresh();
+  });
+
+  vscode.commands.registerCommand("openapi.platform.refreshCollections", async () => {
+    treeDataProvider.setFilter(undefined);
     treeDataProvider.refresh();
   });
 }

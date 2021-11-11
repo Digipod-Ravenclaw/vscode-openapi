@@ -71,8 +71,8 @@
     "views": {
       "42crunch-platform": [
         {
-          "id": "collectionsExplorer",
-          "name": "API Collections"
+          "id": "platformExplorer",
+          "name": "Platform"
         }
       ],
       "openapi-explorer": [
@@ -310,8 +310,9 @@
           "when": "!openapiErrors && view == openapiThreeSecurityOutline"
         },
         {
-          "command": "openapi.platform.createCollection",
-          "when": "view == collectionsExplorer"
+          "command": "openapi.platform.refreshCollections",
+          "when": "view == platformExplorer",
+          "group": "navigation"
         }
       ],
       "view/item/context": [
@@ -326,37 +327,65 @@
           "when": "!openapiErrors && view == openapiThreePathOutline && viewItem == path"
         },
         {
+          "command": "openapi.platform.createCollection",
+          "when": "view == platformExplorer && viewItem == collections"
+        },
+        {
           "command": "openapi.platform.deleteCollection",
-          "when": "view == collectionsExplorer && viewItem == collection"
+          "when": "view == platformExplorer && viewItem == collection"
         },
         {
           "command": "openapi.platform.deleteApi",
-          "when": "view == collectionsExplorer && viewItem == api"
+          "when": "view == platformExplorer && viewItem == api"
         },
         {
           "command": "openapi.platform.renameApi",
-          "when": "view == collectionsExplorer && viewItem == api"
+          "when": "view == platformExplorer && viewItem == api"
         },
         {
           "command": "openapi.platform.createApi",
-          "when": "view == collectionsExplorer && viewItem == collection"
+          "when": "view == platformExplorer && viewItem == collection"
+        },
+        {
+          "command": "openapi.platform.filterCollections",
+          "when": "view == platformExplorer && viewItem == collections",
+          "group": "inline"
         }
       ]
     },
     "commands": [
       {
+        "command": "openapi.platform.filterCollections",
+        "title": "Filter",
+        "enablement": "view == platformExplorer && viewItem == collections",
+        "icon": {
+          "light": "resources/light/filter.svg",
+          "dark": "resources/dark/filter.svg"
+        }
+      },
+      {
+        "command": "openapi.platform.refreshCollections",
+        "title": "Refresh",
+        "enablement": "view == platformExplorer",
+        "icon": {
+          "light": "resources/light/refresh.svg",
+          "dark": "resources/dark/refresh.svg"
+        }
+      },
+      {
         "command": "openapi.platform.deleteCollection",
-        "enablement": "view == collectionsExplorer && viewItem == collection",
+        "enablement": "view == platformExplorer && viewItem == collection",
         "title": "Delete"
       },
       {
         "command": "openapi.platform.deleteApi",
         "title": "Delete",
-        "enablement": "view == collectionsExplorer && viewItem == api"
+        "enablement": "view == platformExplorer && viewItem == api"
       },
       {
         "command": "openapi.platform.createCollection",
-        "title": "Create new collection"
+        "title": "Create new collection",
+        "enablement": "view == platformExplorer && viewItem == collections"
       },
       {
         "command": "openapi.platform.renameApi",

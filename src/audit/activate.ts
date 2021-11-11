@@ -15,13 +15,11 @@ import { registerQuickfixes } from "./quickfix";
 import { Cache } from "../cache";
 import { setDecorations } from "./decoration";
 
-export function activate(context: vscode.ExtensionContext, cache: Cache) {
-  const auditContext: AuditContext = {
-    auditsByMainDocument: {},
-    auditsByDocument: {},
-    decorations: {},
-    diagnostics: vscode.languages.createDiagnosticCollection("audits"),
-  };
+export function activate(
+  context: vscode.ExtensionContext,
+  auditContext: AuditContext,
+  cache: Cache
+) {
   const pendingAudits: { [uri: string]: boolean } = {};
 
   vscode.window.onDidChangeActiveTextEditor((editor) => {

@@ -1,5 +1,4 @@
 import * as vscode from "vscode";
-import { newItems } from "yaml-language-server-parser";
 
 import { listApis, listCollections } from "./api";
 import { Options, Api, CollectionData } from "./types";
@@ -11,7 +10,29 @@ export interface Node {
 }
 
 export class RootNode implements Node {
+  private filter: string | undefined;
+
   constructor(private options: Options) {}
+
+  setFilter(filter: string) {
+    this.filter = filter;
+  }
+
+  public hasChildren(): boolean {
+    return true;
+  }
+
+  async getChildren(): Promise<Node[]> {
+    return [new CollectionsNode(this.filter, this.options)];
+  }
+
+  getTreeItem(): vscode.TreeItem {
+    return null;
+  }
+}
+
+export class CollectionsNode implements Node {
+  constructor(private filter: string, private options: Options) {}
 
   public hasChildren(): boolean {
     return true;
@@ -19,11 +40,15 @@ export class RootNode implements Node {
 
   async getChildren(): Promise<CollectionNode[]> {
     const collections = await listCollections(this.options);
-    return collections.list.map((collection) => new CollectionNode(collection, this.options));
+    return collections.list
+      .filter((collection) => (this.filter ? collection.desc.name.includes(this.filter) : true))
+      .map((collection) => new CollectionNode(collection, this.options));
   }
 
   getTreeItem(): vscode.TreeItem {
-    return null;
+    const item = new vscode.TreeItem("API Collections", vscode.TreeItemCollapsibleState.Expanded);
+    item.contextValue = "collections";
+    return item;
   }
 }
 
@@ -96,8 +121,18 @@ export class AuditNode implements Node {
   constructor(private data: Api, private options: Options) {}
 
   getTreeItem(): vscode.TreeItem {
+    function score(score: number): string {
+      const rounded = Math.abs(Math.round(score));
+      if (score === 0) {
+        return "0";
+      } else if (rounded >= 1) {
+        return rounded.toString();
+      }
+      return "less than 1";
+    }
+
     const item = new vscode.TreeItem(
-      `Audit score: ${this.data.assessment.grade}`,
+      `Security Audit Report: ${score(this.data.assessment.grade)}`,
       vscode.TreeItemCollapsibleState.None
     );
     item.iconPath = vscode.ThemeIcon.File;

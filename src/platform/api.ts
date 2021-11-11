@@ -129,6 +129,15 @@ export async function createApi(
   return body;
 }
 
+export async function updateApi(apiId: string, contents: Buffer, options: Options): Promise<void> {
+  const { body } = <any>await got(`api/v1/apis/${apiId}`, {
+    ...gotOptions("PUT", options),
+    json: { specfile: contents.toString("base64") },
+  });
+
+  return body;
+}
+
 export async function createCollection(name: string, options: Options): Promise<CollectionData> {
   const { body } = <any>await got("api/v1/collections", {
     ...gotOptions("POST", options),

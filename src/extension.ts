@@ -6,7 +6,7 @@
 import * as vscode from "vscode";
 import * as semver from "semver";
 import { configuration, Configuration } from "./configuration";
-import { extensionQualifiedId } from "./types";
+import { AuditContext, extensionQualifiedId } from "./types";
 import { parserOptions } from "./parser-options";
 import { registerOutlines } from "./outline";
 import { JsonSchemaDefinitionProvider, YamlSchemaDefinitionProvider } from "./reference";
@@ -88,9 +88,17 @@ export function activate(context: vscode.ExtensionContext) {
   vscode.workspace.onDidChangeTextDocument((e) => cache.onDocumentChanged(e));
 
   yamlSchemaContributor.activate(context, cache);
-  audit.activate(context, cache);
+
+  const auditContext: AuditContext = {
+    auditsByMainDocument: {},
+    auditsByDocument: {},
+    decorations: {},
+    diagnostics: vscode.languages.createDiagnosticCollection("audits"),
+  };
+
+  audit.activate(context, auditContext, cache);
   preview.activate(context, cache);
-  platform.activate(context, cache);
+  platform.activate(context, auditContext, cache);
 
   if (previousVersion.major < currentVersion.major) {
     createWhatsNewPanel(context);
