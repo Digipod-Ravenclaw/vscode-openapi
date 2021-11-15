@@ -4,22 +4,31 @@
 */
 
 import * as vscode from "vscode";
-import { stringify } from "@xliic/preserving-json-yaml-parser";
 import { Cache } from "../cache";
 import { configuration } from "../configuration";
-import { createApi, createCollection, deleteApi, deleteCollection } from "./api";
-import { ApiNode, CollectionNode } from "./collection-node";
-import { CollectionsProvider } from "./collections-provider";
-import { Editor } from "./editor";
-import { Options } from "./types";
+import { CollectionsProvider } from "./explorer/provider";
+import { PlatformContext } from "./types";
 import { AuditContext } from "../types";
+import { registerCommands } from "./commands";
 
 export function activate(
   context: vscode.ExtensionContext,
   auditContext: AuditContext,
   cache: Cache
 ) {
-  const options: Options = {
+  const platformContext: PlatformContext = {
+    context,
+    memento: context.workspaceState,
+    explorer: {
+      tree: undefined,
+      provider: undefined,
+    },
+    foo: {
+      filter: {
+        name: undefined,
+        owner: "ALL",
+      },
+    },
     platformUrl: configuration.get("platformUrl"),
     apiToken: configuration.get("platformApiToken"),
     userAgent: "foo",
@@ -33,13 +42,14 @@ export function activate(
     },
   };
 
-  const treeDataProvider = new CollectionsProvider(options);
-  const tree = vscode.window.createTreeView("platformExplorer", {
-    treeDataProvider,
+  platformContext.explorer.provider = new CollectionsProvider(platformContext);
+  platformContext.explorer.tree = vscode.window.createTreeView("platformExplorer", {
+    treeDataProvider: platformContext.explorer.provider,
   });
 
+  /*
   vscode.commands.registerCommand("openapi.platform.editApi", (apiId) => {
-    const editor = new Editor(apiId, context, auditContext, cache, options);
+    const editor = new Editor(apiId, context, auditContext, cache, platformContext);
 
     // unsubscribe?
     const disposable = vscode.workspace.onDidSaveTextDocument((document) => {
@@ -48,83 +58,7 @@ export function activate(
 
     editor.show();
   });
+  */
 
-  vscode.commands.registerCommand("openapi.platform.createCollection", async () => {
-    const name = await vscode.window.showInputBox({
-      prompt: "New Collection name",
-    });
-    const collection = await createCollection(name, options);
-    const collectionNode = new CollectionNode(collection, options);
-    treeDataProvider.refresh();
-    tree.reveal(collectionNode, { focus: true });
-  });
-
-  vscode.commands.registerCommand(
-    "openapi.platform.deleteCollection",
-    async (collection: CollectionNode) => {
-      await deleteCollection(collection.getCollectionId(), options);
-      treeDataProvider.refresh();
-    }
-  );
-
-  vscode.commands.registerCommand(
-    "openapi.platform.createApi",
-    async (collection: CollectionNode) => {
-      const uri = await vscode.window.showOpenDialog({
-        openLabel: "Import API",
-        title: "title",
-        canSelectFiles: true,
-        canSelectFolders: false,
-        canSelectMany: false,
-        // TODO use language filter from extension.ts
-        filters: {
-          JSON: ["json"],
-          YAML: ["yaml", "yml"],
-        },
-      });
-
-      if (uri) {
-        const document = await vscode.workspace.openTextDocument(uri[0]);
-
-        // TODO handle bundling errors
-        const bundle = await cache.getDocumentBundle(document);
-        if (!bundle || "errors" in bundle) {
-          return;
-        }
-
-        const title = bundle.value.info.title;
-
-        const json = stringify(bundle.value);
-        const api = await createApi(
-          collection.getCollectionId(),
-          title,
-          Buffer.from(json),
-          options
-        );
-        treeDataProvider.refresh();
-        // FIXME improve getParent() implementation in tree data provider
-        //const apiNode = new ApiNode(api, options);
-        //tree.reveal(apiNode, { focus: true });
-      }
-    }
-  );
-
-  vscode.commands.registerCommand("openapi.platform.deleteApi", async (api: ApiNode) => {
-    await deleteApi(api.getApiId(), options);
-    treeDataProvider.refresh();
-  });
-
-  vscode.commands.registerCommand("openapi.platform.filterCollections", async () => {
-    const filter = await vscode.window.showInputBox({
-      prompt: "Filter",
-    });
-
-    treeDataProvider.setFilter(filter);
-    treeDataProvider.refresh();
-  });
-
-  vscode.commands.registerCommand("openapi.platform.refreshCollections", async () => {
-    treeDataProvider.setFilter(undefined);
-    treeDataProvider.refresh();
-  });
+  registerCommands(context, platformContext, auditContext, cache);
 }

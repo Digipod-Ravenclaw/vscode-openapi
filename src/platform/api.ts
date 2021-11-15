@@ -9,7 +9,7 @@ import {
   ApiStatus,
   ApiErrors,
   Api,
-  Options,
+  PlatformContext,
   ApiResponse,
   ListCollectionsResponse,
   ListApisResponse,
@@ -21,7 +21,7 @@ function delay(ms: number) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
-function handleHttpError(err: any, options: Options): ApiErrors {
+function handleHttpError(err: any, options: PlatformContext): ApiErrors {
   if (
     err instanceof HTTPError &&
     err?.response?.statusCode === 409 &&
@@ -55,7 +55,7 @@ function handleHttpError(err: any, options: Options): ApiErrors {
   throw err;
 }
 
-function gotOptions(method: Method, options: Options): OptionsOfJSONResponseBody {
+function gotOptions(method: Method, options: PlatformContext): OptionsOfJSONResponseBody {
   const logRequest = (response: any, retryWithMergedOptions: Function) => {
     options.logger.debug(`${method} ${response.url} ${response.statusCode}`);
     return response;
@@ -77,25 +77,29 @@ function gotOptions(method: Method, options: Options): OptionsOfJSONResponseBody
   };
 }
 
-export async function listCollections(options: Options): Promise<ListCollectionsResponse> {
+export async function listCollections(options: PlatformContext): Promise<ListCollectionsResponse> {
+  const listOption = options.foo.filter.owner;
   const { body } = await got(
-    `api/v2/collections?listOption=ALL&perPage=0`,
+    `api/v2/collections?listOption=${listOption}&perPage=0`,
     gotOptions("GET", options)
   );
   return <ListCollectionsResponse>body;
 }
 
-export async function listApis(collectionId: string, options: Options): Promise<ListApisResponse> {
+export async function listApis(
+  collectionId: string,
+  options: PlatformContext
+): Promise<ListApisResponse> {
   const { body } = await got(`api/v1/collections/${collectionId}/apis`, gotOptions("GET", options));
   return <ListApisResponse>body;
 }
 
-export async function readApi(apiId: string, options: Options): Promise<Api> {
+export async function readApi(apiId: string, options: PlatformContext): Promise<Api> {
   const { body } = <any>await got(`api/v1/apis/${apiId}?specfile=true`, gotOptions("GET", options));
   return body;
 }
 
-export async function readAssessmentReport(apiId: string, options: Options): Promise<any> {
+export async function readAssessmentReport(apiId: string, options: PlatformContext): Promise<any> {
   const { body } = <any>(
     await got(`api/v1/apis/${apiId}/assessmentreport`, gotOptions("GET", options))
   );
@@ -104,7 +108,7 @@ export async function readAssessmentReport(apiId: string, options: Options): Pro
   return JSON.parse(text);
 }
 
-export async function deleteApi(apiId: string, options: Options) {
+export async function deleteApi(apiId: string, options: PlatformContext) {
   await got(`api/v1/apis/${apiId}`, gotOptions("DELETE", options));
 }
 
@@ -112,7 +116,7 @@ export async function createApi(
   collectionId: string,
   name: string,
   contents: Buffer,
-  options: Options
+  options: PlatformContext
 ): Promise<Api> {
   const form = new FormData();
   form.append("specfile", contents.toString("utf-8"), {
@@ -129,7 +133,11 @@ export async function createApi(
   return body;
 }
 
-export async function updateApi(apiId: string, contents: Buffer, options: Options): Promise<void> {
+export async function updateApi(
+  apiId: string,
+  contents: Buffer,
+  options: PlatformContext
+): Promise<void> {
   const { body } = <any>await got(`api/v1/apis/${apiId}`, {
     ...gotOptions("PUT", options),
     json: { specfile: contents.toString("base64") },
@@ -138,7 +146,10 @@ export async function updateApi(apiId: string, contents: Buffer, options: Option
   return body;
 }
 
-export async function createCollection(name: string, options: Options): Promise<CollectionData> {
+export async function createCollection(
+  name: string,
+  options: PlatformContext
+): Promise<CollectionData> {
   const { body } = <any>await got("api/v1/collections", {
     ...gotOptions("POST", options),
     json: {
@@ -148,6 +159,6 @@ export async function createCollection(name: string, options: Options): Promise<
   return body;
 }
 
-export async function deleteCollection(collectionId: string, options: Options) {
+export async function deleteCollection(collectionId: string, options: PlatformContext) {
   await got(`api/v1/collections/${collectionId}`, gotOptions("DELETE", options));
 }

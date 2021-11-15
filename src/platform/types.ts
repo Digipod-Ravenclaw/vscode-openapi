@@ -2,6 +2,10 @@
  Copyright (c) 42Crunch Ltd. All rights reserved.
  Licensed under the GNU Affero General Public License version 3. See LICENSE.txt in the project root for license information.
 */
+import * as vscode from "vscode";
+
+import { ExplorerNode } from "./explorer/nodes";
+import { CollectionsProvider } from "./explorer/provider";
 
 export interface ListCollectionsResponse {
   list: CollectionData[];
@@ -141,7 +145,21 @@ export interface Mapping {
   [k: string]: string;
 }
 
-export interface Options {
+export interface CollectionFilter {
+  name: string;
+  owner: "OWNER" | "ALL";
+}
+
+export interface PlatformContext {
+  foo: {
+    filter: CollectionFilter;
+  };
+  explorer: {
+    provider: CollectionsProvider;
+    tree: vscode.TreeView<ExplorerNode>;
+  };
+  memento: vscode.Memento;
+  context: any;
   platformUrl: string;
   logger: Logger;
   apiToken: string;

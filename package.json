@@ -332,7 +332,15 @@
         },
         {
           "command": "openapi.platform.deleteCollection",
+          "when": "view == platformExplorer && viewItem =~ /^collection$|^favoriteCollection$/"
+        },
+        {
+          "command": "openapi.platform.collectionAddToFavorite",
           "when": "view == platformExplorer && viewItem == collection"
+        },
+        {
+          "command": "openapi.platform.collectionRemoveFromFavorite",
+          "when": "view == platformExplorer && viewItem == favoriteCollection"
         },
         {
           "command": "openapi.platform.deleteApi",
@@ -344,7 +352,7 @@
         },
         {
           "command": "openapi.platform.createApi",
-          "when": "view == platformExplorer && viewItem == collection"
+          "when": "view == platformExplorer && viewItem =~ /^collection$|^favoriteCollection$/"
         },
         {
           "command": "openapi.platform.filterCollections",
@@ -374,8 +382,18 @@
       },
       {
         "command": "openapi.platform.deleteCollection",
-        "enablement": "view == platformExplorer && viewItem == collection",
+        "enablement": "view == platformExplorer && viewItem =~ /^collection$|^favoriteCollection$/",
         "title": "Delete"
+      },
+      {
+        "command": "openapi.platform.collectionAddToFavorite",
+        "enablement": "view == platformExplorer && viewItem == collection",
+        "title": "Add to My Favorite Collections"
+      },
+      {
+        "command": "openapi.platform.collectionRemoveFromFavorite",
+        "enablement": "view == platformExplorer && viewItem == favoriteCollection",
+        "title": "Remove from Favorite"
       },
       {
         "command": "openapi.platform.deleteApi",
@@ -393,6 +411,7 @@
       },
       {
         "command": "openapi.platform.createApi",
+        "enablement": "view == platformExplorer && viewItem =~ /^collection$|^favoriteCollection$/",
         "title": "Import API"
       },
       {

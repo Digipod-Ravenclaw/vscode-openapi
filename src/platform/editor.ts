@@ -2,7 +2,7 @@ import * as vscode from "vscode";
 import * as path from "path";
 
 import { readApi, readAssessmentReport, updateApi } from "./api";
-import { Options } from "./types";
+import { PlatformContext } from "./types";
 import { Cache } from "../cache";
 import { stringify } from "@xliic/preserving-json-yaml-parser";
 import { parseAuditReport, updateAuditContext } from "../audit/audit";
@@ -23,7 +23,7 @@ export class Editor {
     private context: vscode.ExtensionContext,
     private auditContext: AuditContext,
     private cache: Cache,
-    private options: Options
+    private options: PlatformContext
   ) {}
 
   public async show(): Promise<void> {
@@ -75,6 +75,8 @@ export class Editor {
       const api = await updateApi(this.apiId, Buffer.from(json), this.options);
 
       await delay(2000);
+
+      vscode.commands.executeCommand("openapi.platform.refreshCollections");
 
       // get audit report
       const uri = this.document.uri.toString();
