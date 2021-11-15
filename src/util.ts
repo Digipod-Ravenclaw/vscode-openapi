@@ -1,27 +1,45 @@
 import * as vscode from "vscode";
 import * as yaml from "js-yaml";
-import { parse, Node } from "@xliic/openapi-ast-node";
 import { parserOptions } from "./parser-options";
 import { replace } from "@xliic/openapi-ast-node";
 import { InsertReplaceRenameFix, FixType, FixContext } from "./types";
 import parameterSources from "./audit/quickfix-sources";
 import { topTags } from "./commands";
+import { parse, Parsed } from "@xliic/preserving-json-yaml-parser";
+import {
+  findJsonNodeValue,
+  getChildren,
+  getDepth,
+  getKey,
+  getKeyRange,
+  getParent,
+  getRange,
+  getRanges,
+  getValueRange,
+  isArray,
+  isObject,
+  JsonNodeValue,
+  next,
+  prev,
+} from "./json-utils";
 
-function getBasicIndentation(document: vscode.TextDocument, root: Node): [number, string] {
-  let target: Node;
-  for (let child of root.getChildren()) {
-    if (child.isObject()) {
-      const tmp = child.getChildren();
+function getBasicIndentation(document: vscode.TextDocument, root: Parsed): [number, string] {
+  let depth = 0;
+  let start = 0;
+  for (const child of getChildren({ value: root, pointer: "" })) {
+    if (isObject(child)) {
+      const tmp = getRanges(child);
       if (tmp && tmp.length > 0) {
-        target = tmp[0];
+        depth = 2;
+        start = tmp[0][0];
       }
     }
   }
-  const position = document.positionAt(target.getRange()[0]);
+  const position = document.positionAt(start);
   const index = document.lineAt(position.line).firstNonWhitespaceCharacterIndex;
   const p0 = new vscode.Position(position.line, index - 1);
   const p1 = new vscode.Position(position.line, index);
-  const depth = document.languageId === "yaml" ? target.getDepth() - 1 : target.getDepth();
+  depth = document.languageId === "yaml" ? depth - 1 : depth;
   return [Math.round(index / depth), document.getText(new vscode.Range(p0, p1))];
 }
 
@@ -58,7 +76,7 @@ function shift(
 export function renameKeyNode(context: FixContext): vscode.Range {
   const document = context.document;
   const target = context.target;
-  const [start, end] = target.getKeyRange();
+  const [start, end] = getKeyRange(context.root, target);
   return new vscode.Range(document.positionAt(start), document.positionAt(end));
 }
 
@@ -66,19 +84,22 @@ export function deleteJsonNode(context: FixContext): vscode.Range {
   const document = context.document;
   const target = context.target;
   let startPosition: vscode.Position;
+  const prevTarget = prev(context.root, target);
 
-  if (target.prev()) {
-    const line = getLineByOffset(document, target.prev().getRange()[1]);
-    startPosition = new vscode.Position(
-      line.lineNumber,
-      line.text.length + (target.next() ? 0 : -1)
-    );
+  if (prevTarget) {
+    const [, end] = getRange(context.root, prevTarget);
+    const line = getLineByOffset(document, end);
+    const nextTarget = next(context.root, target);
+    startPosition = new vscode.Position(line.lineNumber, line.text.length + (nextTarget ? 0 : -1));
   } else {
-    const line = getLineByOffset(document, target.getParent().getRange()[0]);
+    const parent = getParent(context.root, target);
+    const [start] = getRange(context.root, parent);
+    const line = getLineByOffset(document, start);
     startPosition = new vscode.Position(line.lineNumber, line.text.length);
   }
 
-  const line = getLineByOffset(document, target.getRange()[1]);
+  const [, end] = getRange(context.root, target);
+  const line = getLineByOffset(document, end);
   const endPosition = new vscode.Position(line.lineNumber, line.text.length);
 
   return new vscode.Range(startPosition, endPosition);
@@ -87,15 +108,17 @@ export function deleteJsonNode(context: FixContext): vscode.Range {
 export function deleteYamlNode(context: FixContext): vscode.Range {
   const document = context.document;
   const target = context.target;
-  const [start, end] = target.getRange();
+  const [start, end] = getRange(context.root, target);
 
   let apply = false;
   let startPosition = document.positionAt(start);
   let endPosition = document.positionAt(end);
+  const parent = getParent(context.root, target);
 
-  if (target.getParent().isArray()) {
-    if (target.next()) {
-      const line = getLineByOffset(document, target.next().getRange()[0]);
+  if (isArray(parent)) {
+    const nextTarget = next(context.root, target);
+    if (nextTarget) {
+      const line = getLineByOffset(document, getRange(context.root, nextTarget)[0]);
       startPosition = document.positionAt(start - "- ".length);
       endPosition = new vscode.Position(line.lineNumber, line.firstNonWhitespaceCharacterIndex);
     } else {
@@ -103,9 +126,10 @@ export function deleteYamlNode(context: FixContext): vscode.Range {
       endPosition = new vscode.Position(getLineByOffset(document, end).lineNumber + 1, 0);
     }
     apply = true;
-  } else if (target.getParent().isObject()) {
-    if (target.next()) {
-      const line = getLineByOffset(document, target.next().getRange()[0]);
+  } else if (isObject(parent)) {
+    const nextTarget = next(context.root, target);
+    if (nextTarget) {
+      const line = getLineByOffset(document, getRange(context.root, nextTarget)[0]);
       endPosition = new vscode.Position(line.lineNumber, line.firstNonWhitespaceCharacterIndex);
     } else {
       startPosition = new vscode.Position(getLineByOffset(document, start).lineNumber, 0);
@@ -124,19 +148,17 @@ export function insertJsonNode(context: FixContext, value: string): [string, vsc
   const root = context.root;
   const target = context.target;
   const snippet = context.snippet;
-  let lastChildTarget: Node;
-  const children = target.getChildren();
+  const ranges = getRanges(target);
   const [indent, char] = getBasicIndentation(document, root);
   let start: number, end: number;
   let comma = ",";
 
   // Insert pointer is either {} or [], nothing else
-  if (children) {
-    if (children.length > 0) {
-      lastChildTarget = children[children.length - 1];
-      [start, end] = lastChildTarget.getRange();
+  if (ranges) {
+    if (ranges.length > 0) {
+      [start, end] = ranges[ranges.length - 1];
     } else {
-      [start, end] = target.getRange();
+      [start, end] = getRange(root, target);
       start += 1;
       end = start;
       comma = "";
@@ -155,23 +177,22 @@ export function insertYamlNode(context: FixContext, value: string): [string, vsc
   const document = context.document;
   const root = context.root;
   const target = context.target;
-  let insertAtTarget: Node;
-  const children = target.getChildren();
+  let insertAtTarget: any;
   let position: vscode.Position;
   let start: number, end: number;
 
-  if (target.getDepth() === 0) {
+  if (getDepth(target) === 0) {
     insertAtTarget = findTopLevelInsertionFollower(root, <InsertReplaceRenameFix>context.fix);
     if (insertAtTarget) {
-      [start, end] = insertAtTarget.getRange();
+      [start, end] = getRange(root, insertAtTarget);
       position = document.positionAt(start);
     }
   }
 
   // Insert pointer is either {} or [], nothing else
-  if (!insertAtTarget && children && children.length > 0) {
-    insertAtTarget = children[children.length - 1];
-    [start, end] = insertAtTarget.getRange();
+  const ranges = getRanges(target);
+  if (!insertAtTarget && ranges && ranges.length > 0) {
+    [start, end] = ranges[ranges.length - 1];
     position = document.positionAt(end);
     if (position.line + 1 === document.lineCount) {
       position = document.positionAt(start);
@@ -184,10 +205,10 @@ export function insertYamlNode(context: FixContext, value: string): [string, vsc
   const index = getCurrentIdentation(document, start);
   const [indent, char] = getBasicIndentation(document, root);
 
-  if (target.isObject()) {
+  if (isObject(target)) {
     value = shift(value, indent, char, index) + "\n";
     return [value, position];
-  } else if (target.isArray()) {
+  } else if (isArray(target)) {
     value = shift("- " + value, indent, char, index, "- ".length) + "\n";
     return [value, position];
   }
@@ -197,7 +218,7 @@ export function replaceJsonNode(context: FixContext, value: string): [string, vs
   const document = context.document;
   const root = context.root;
   const target = context.target;
-  const [start, end] = target.getRange();
+  const [start, end] = getValueRange(root, target);
 
   const isObject = value.startsWith("{") && value.endsWith("}");
   const isArray = value.startsWith("[") && value.endsWith("]");
@@ -214,19 +235,19 @@ export function replaceYamlNode(context: FixContext, value: string): [string, vs
   const document = context.document;
   const root = context.root;
   const target = context.target;
-  const [start, end] = target.getValueRange();
+  const [start, end] = getValueRange(root, target);
 
   const i1 = value.indexOf(":");
   const i2 = value.indexOf("- ");
-  const isObject = i1 > 0 && (i2 < 0 || (i2 > 0 && i2 > i1));
-  const isArray = i2 >= 0 && (i1 < 0 || (i1 > 0 && i1 > i2));
+  const isObjectValue = i1 > 0 && (i2 < 0 || (i2 > 0 && i2 > i1));
+  const isArrayValue = i2 >= 0 && (i1 < 0 || (i1 > 0 && i1 > i2));
 
-  if (isObject || isArray) {
+  if (isObjectValue || isArrayValue) {
     const index = getCurrentIdentation(document, start);
     const [indent, char] = getBasicIndentation(document, root);
     // Last array member end offset may be at the beggining of the next key node (next line)
     // In this case we must keep ident + \n symbols
-    if (target.isArray()) {
+    if (isArray(target)) {
       const line = getLineByOffset(document, end);
       // But do not handle the case if the last array member = the last item in the doc
       if (!line.text.trim().startsWith("-")) {
@@ -237,7 +258,8 @@ export function replaceYamlNode(context: FixContext, value: string): [string, vs
       }
     }
     // Replace plain value with not plain one (add a new line)
-    if (!(target.isArray() || target.isObject()) && target.getParent().isObject()) {
+    const parent = getParent(context.root, target);
+    if (!(isArray(target) || isObject(target)) && isObject(parent)) {
       value = shift("\n" + value, indent, char, index, indent, false);
     }
   }
@@ -245,8 +267,6 @@ export function replaceYamlNode(context: FixContext, value: string): [string, vs
 }
 
 export function getFixAsJsonString(context: FixContext): string {
-  const root = context.root;
-  const pointer = context.pointer;
   const snippet = context.snippet;
   const fix = <InsertReplaceRenameFix>context.fix;
   const type = fix.type;
@@ -258,8 +278,7 @@ export function getFixAsJsonString(context: FixContext): string {
   if (snippet && (type === FixType.Insert || type === FixType.Replace)) {
     text = text.replace(new RegExp("\\$ref", "g"), "\\$ref");
   }
-  const target = root.find(pointer);
-  if (target.isObject() && type === FixType.Insert) {
+  if (isObject(context.target) && type === FixType.Insert) {
     text = text.replace("{\n\t", "");
     text = text.replace("\n}", "");
     // Replace only trailing \t, i.e. a\t\t\ta\t\ta\t -> a\t\ta\ta
@@ -284,21 +303,21 @@ export function getFixAsYamlString(context: FixContext): string {
   return text.replace(new RegExp("  ", "g"), "\t");
 }
 
-function findTopLevelInsertionFollower(root: Node, fix: InsertReplaceRenameFix): Node {
-  let result: Node;
+function findTopLevelInsertionFollower(root: Parsed, fix: InsertReplaceRenameFix): JsonNodeValue {
   const keys = Object.keys(fix.fix);
   if (keys && keys.length === 1) {
     const n = topTags.indexOf(keys[0]);
     if (n >= 0) {
       for (let i = n + 1; i < topTags.length; i++) {
-        result = root.find(`/${topTags[i]}`);
+        const pointer = `/${topTags[i]}`;
+        const result = findJsonNodeValue(root, pointer);
         if (result) {
           return result;
         }
       }
     }
   }
-  return result;
+  return null;
 }
 
 function handleParameters(context: FixContext, text: string): string {
@@ -313,8 +332,8 @@ function handleParameters(context: FixContext, text: string): string {
     const index = replacements.length + 1;
     const replaceKey = parameter.type === "key";
     let phValues = parameter.values;
-    const node = root.find(pointer);
-    let defaultValue = replaceKey ? node.getKey() : node.getValue();
+    const target = findJsonNodeValue(root, pointer);
+    let defaultValue = replaceKey ? getKey(target) : target.value;
     let cacheValues = null;
 
     if (parameter.source && parameterSources[parameter.source]) {
@@ -381,7 +400,7 @@ function getPlaceholder(
   );
 }
 
-export function safeParse(text: string, languageId: string): Node {
+export function safeParse(text: string, languageId: string): Parsed {
   const [root, errors] = parse(text, languageId, parserOptions);
   if (errors.length) {
     throw new Error("Can't parse OpenAPI file");

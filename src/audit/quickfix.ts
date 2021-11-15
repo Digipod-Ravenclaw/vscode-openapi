@@ -39,6 +39,7 @@ import parameterSources from "./quickfix-sources";
 import { getLocationByPointer } from "./util";
 import { generateSchemaFixCommand, createGenerateSchemaAction } from "./quickfix-schema";
 import { simpleClone } from "@xliic/preserving-json-yaml-parser";
+import { findJsonNodeValue, getKeys, isObject } from "../json-utils";
 
 const registeredQuickFixes: { [key: string]: Fix } = {};
 
@@ -46,7 +47,7 @@ function fixRegexReplace(context: FixContext) {
   const document = context.document;
   const fix = <RegexReplaceFix>context.fix;
   const target = context.target;
-  const currentValue = target.getValue();
+  const currentValue = target.value;
   if (typeof currentValue !== "string") {
     return;
   }
@@ -131,16 +132,17 @@ function fixDelete(context: FixContext) {
 
 function transformInsertToReplaceIfExists(context: FixContext): boolean {
   const target = context.target;
-  const pointer = context.pointer;
   const fix = <InsertReplaceRenameFix>context.fix;
-
   const keys = Object.keys(fix.fix);
-  if (target.isObject() && keys.length === 1) {
+
+  if (isObject(target) && keys.length === 1) {
     const insertingKey = keys[0];
-    for (let child of target.getChildren()) {
-      if (child.getKey() === insertingKey) {
-        context.pointer = `${pointer}/${insertingKey}`;
-        context.target = context.root.find(context.pointer);
+    for (let key of getKeys(target)) {
+      if (key === insertingKey) {
+        context.target = findJsonNodeValue(
+          context.root,
+          `${context.target.pointer}/${insertingKey}`
+        );
         context.fix = {
           problem: fix.problem,
           title: fix.title,
@@ -187,7 +189,7 @@ async function quickFixCommand(
     // if fix.pointer exists, append it to diagnostic.pointer
     const pointer = fix.pointer ? `${issuePointer}${fix.pointer}` : issuePointer;
     const root = cache.getLastGoodDocumentAst(document);
-    const target = root.find(pointer);
+    const target = findJsonNodeValue(root, pointer);
 
     const context: FixContext = {
       editor: editor,
@@ -198,7 +200,6 @@ async function quickFixCommand(
       auditContext: auditContext,
       version: version,
       bundle: bundle,
-      pointer: pointer,
       root: root,
       target: target,
       document: document,
@@ -438,8 +439,6 @@ export class AuditCodeActions implements vscode.CodeActionProvider {
   ): Promise<vscode.CodeAction[]> {
     const actions: vscode.CodeAction[] = [];
 
-    // FIXME
-    /*
     const uri = document.uri.toString();
     const audit = this.auditContext.auditsByDocument[uri];
     const issues = audit?.issues[uri];
@@ -505,7 +504,6 @@ export class AuditCodeActions implements vscode.CodeActionProvider {
 
     actions.push(...createCombinedAction(combinedIssues, titles, problems, parameters, fixObject));
 
-    */
     return actions;
   }
 }

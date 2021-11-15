@@ -9,6 +9,7 @@ import {
   safeParse,
 } from "../../util";
 import { FixContext, FixType, InsertReplaceRenameFix } from "../../types";
+import { findJsonNodeValue } from "../../json-utils";
 
 suite("Edit Replace Node Test Suite", () => {
   test("Method replaceJsonNode (key - value) test", async () => {
@@ -36,9 +37,8 @@ suite("Edit Replace Node Test Suite", () => {
         auditContext: null,
         version: null,
         bundle: null,
-        pointer: pointer,
         root: root,
-        target: root.find(pointer),
+        target: findJsonNodeValue(root, pointer),
         document: editor.document,
       };
 
@@ -50,7 +50,7 @@ suite("Edit Replace Node Test Suite", () => {
 
       return vscode.workspace.applyEdit(edit).then(() => {
         assert.ok(doc.isDirty);
-        assert.equal(doc.getText(), expected);
+        assert.strictEqual(doc.getText(), expected);
       });
     });
   });
@@ -82,9 +82,8 @@ suite("Edit Replace Node Test Suite", () => {
         auditContext: null,
         version: null,
         bundle: null,
-        pointer: pointer,
         root: root,
-        target: root.find(pointer),
+        target: findJsonNodeValue(root, pointer),
         document: editor.document,
       };
 
@@ -96,7 +95,7 @@ suite("Edit Replace Node Test Suite", () => {
 
       return vscode.workspace.applyEdit(edit).then(() => {
         assert.ok(doc.isDirty);
-        assert.equal(doc.getText(), expected);
+        assert.strictEqual(doc.getText(), expected);
       });
     });
   });
@@ -126,9 +125,8 @@ suite("Edit Replace Node Test Suite", () => {
         auditContext: null,
         version: null,
         bundle: null,
-        pointer: pointer,
         root: root,
-        target: root.find(pointer),
+        target: findJsonNodeValue(root, pointer),
         document: editor.document,
       };
 
@@ -140,7 +138,7 @@ suite("Edit Replace Node Test Suite", () => {
 
       return vscode.workspace.applyEdit(edit).then(() => {
         assert.ok(doc.isDirty);
-        assert.equal(doc.getText(), expected);
+        assert.strictEqual(doc.getText(), expected);
       });
     });
   });
@@ -172,9 +170,8 @@ suite("Edit Replace Node Test Suite", () => {
         auditContext: null,
         version: null,
         bundle: null,
-        pointer: pointer,
         root: root,
-        target: root.find(pointer),
+        target: findJsonNodeValue(root, pointer),
         document: editor.document,
       };
 
@@ -186,7 +183,7 @@ suite("Edit Replace Node Test Suite", () => {
 
       return vscode.workspace.applyEdit(edit).then(() => {
         assert.ok(doc.isDirty);
-        assert.equal(doc.getText(), expected);
+        assert.strictEqual(doc.getText(), expected);
       });
     });
   });

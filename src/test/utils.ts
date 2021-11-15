@@ -9,7 +9,8 @@ import * as assert from "assert";
 import { readFileSync } from "fs";
 import { workspace, window, TextEditor, TextDocument } from "vscode";
 import { FixContext } from "../types";
-import { parseJson, parseYaml } from "@xliic/preserving-json-yaml-parser";
+import { find, parseJson, parseYaml } from "@xliic/preserving-json-yaml-parser";
+import { findJsonNodeValue } from "../json-utils";
 
 export function rndName() {
   return Math.random()
@@ -111,8 +112,7 @@ export function withRandomFileEditor(
 }
 
 export function getContextUpdatedByPointer(context: FixContext, pointer: string): FixContext {
-  context.pointer = pointer;
-  context.target = context.root.find(pointer);
+  context.target = findJsonNodeValue(context.root, pointer);
   return context;
 }
 

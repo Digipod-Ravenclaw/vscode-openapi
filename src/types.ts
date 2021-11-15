@@ -1,4 +1,6 @@
+import { Parsed } from "@xliic/preserving-json-yaml-parser";
 import * as vscode from "vscode";
+import { JsonNodeValue } from "./json-utils";
 
 export const configId = "openapi";
 export const extensionQualifiedId = "42Crunch.vscode-openapi";
@@ -176,9 +178,8 @@ export interface FixContext {
   auditContext: AuditContext;
   version: OpenApiVersion;
   bundle: BundleResult;
-  pointer: string;
-  root: Node;
-  target: Node;
+  root: Parsed;
+  target: JsonNodeValue;
   document: vscode.TextDocument;
 }
 
