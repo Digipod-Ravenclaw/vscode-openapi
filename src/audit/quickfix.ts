@@ -26,13 +26,10 @@ import { ReportWebView } from "./report";
 import {
   deleteJsonNode,
   deleteYamlNode,
-  getChildren,
   getFixAsJsonString,
   getFixAsYamlString,
-  getKeys,
   insertJsonNode,
   insertYamlNode,
-  isObject,
   renameKeyNode,
   replaceJsonNode,
   replaceYamlNode,
@@ -40,8 +37,9 @@ import {
 import { Cache } from "../cache";
 import parameterSources from "./quickfix-sources";
 import { getLocationByPointer } from "./util";
-//import { generateSchemaFixCommand, createGenerateSchemaAction } from "./quickfix-schema";
-import { find, simpleClone } from "@xliic/preserving-json-yaml-parser";
+import { generateSchemaFixCommand, createGenerateSchemaAction } from "./quickfix-schema";
+import { simpleClone } from "@xliic/preserving-json-yaml-parser";
+import { findJsonNodeValue, getKeys, isObject } from "../json-utils";
 
 const registeredQuickFixes: { [key: string]: Fix } = {};
 
@@ -49,7 +47,7 @@ function fixRegexReplace(context: FixContext) {
   const document = context.document;
   const fix = <RegexReplaceFix>context.fix;
   const target = context.target;
-  const currentValue = target.getValue();
+  const currentValue = target.value;
   if (typeof currentValue !== "string") {
     return;
   }
@@ -134,16 +132,17 @@ function fixDelete(context: FixContext) {
 
 function transformInsertToReplaceIfExists(context: FixContext): boolean {
   const target = context.target;
-  const pointer = context.pointer;
   const fix = <InsertReplaceRenameFix>context.fix;
-
   const keys = Object.keys(fix.fix);
+
   if (isObject(target) && keys.length === 1) {
     const insertingKey = keys[0];
     for (let key of getKeys(target)) {
       if (key === insertingKey) {
-        context.pointer = `${pointer}/${insertingKey}`;
-        context.target = context.root.find(context.pointer);
+        context.target = findJsonNodeValue(
+          context.root,
+          `${context.target.pointer}/${insertingKey}`
+        );
         context.fix = {
           problem: fix.problem,
           title: fix.title,
@@ -190,7 +189,7 @@ async function quickFixCommand(
     // if fix.pointer exists, append it to diagnostic.pointer
     const pointer = fix.pointer ? `${issuePointer}${fix.pointer}` : issuePointer;
     const root = cache.getLastGoodDocumentAst(document);
-    const target = find(root, pointer);
+    const target = findJsonNodeValue(root, pointer);
 
     const context: FixContext = {
       editor: editor,
@@ -201,7 +200,6 @@ async function quickFixCommand(
       auditContext: auditContext,
       version: version,
       bundle: bundle,
-      pointer: pointer,
       root: root,
       target: target,
       document: document,
@@ -302,11 +300,11 @@ export function registerQuickfixes(
     async (editor, edit, issues, fix) => quickFixCommand(editor, issues, fix, auditContext, cache)
   );
 
-  // vscode.commands.registerTextEditorCommand(
-  //   "openapi.generateSchemaQuickFix",
-  //   async (editor, edit, issue, fix, examples, inline) =>
-  //     generateSchemaFixCommand(editor, issue, fix, examples, inline, auditContext, cache)
-  // );
+  vscode.commands.registerTextEditorCommand(
+    "openapi.generateSchemaQuickFix",
+    async (editor, edit, issue, fix, examples, inline) =>
+      generateSchemaFixCommand(editor, issue, fix, examples, inline, auditContext, cache)
+  );
 
   vscode.languages.registerCodeActionsProvider("yaml", new AuditCodeActions(auditContext, cache), {
     providedCodeActionKinds: AuditCodeActions.providedCodeActionKinds,
@@ -484,9 +482,9 @@ export class AuditCodeActions implements vscode.CodeActionProvider {
       actions.push(
         ...createBulkAction(document, version, bundle, diagnostic, issue[0], issues, fix)
       );
-      // actions.push(
-      //   ...createGenerateSchemaAction(document, version, root, diagnostic, issue[0], fix)
-      // );
+      actions.push(
+        ...createGenerateSchemaAction(document, version, root, diagnostic, issue[0], fix)
+      );
 
       // Combined Fix
       if (fix.type == FixType.Insert && !fix.pointer && !Array.isArray(fix.fix)) {

@@ -127,7 +127,7 @@ suite("Schema Generate Test Suite", () => {
 
     const result: string = JSON.stringify(generateSchema(input));
     assert.ok(result.indexOf("undefined") === -1);
-    assert.equal(result, JSON.stringify(output));
+    assert.strictEqual(result, JSON.stringify(output));
   });
 
   test("Test 2", () => {
@@ -305,7 +305,7 @@ suite("Schema Generate Test Suite", () => {
 
     const result: string = JSON.stringify(generateSchema(input));
     assert.ok(result.indexOf("undefined") === -1);
-    assert.equal(result, JSON.stringify(output));
+    assert.strictEqual(result, JSON.stringify(output));
   });
 
   test("Test 3", () => {
@@ -339,7 +339,7 @@ suite("Schema Generate Test Suite", () => {
 
     const result: string = JSON.stringify(generateSchema(input));
     assert.ok(result.indexOf("undefined") === -1);
-    assert.equal(result, JSON.stringify(output));
+    assert.strictEqual(result, JSON.stringify(output));
   });
 
   test("Test 4 (generateOneOfSchema)", () => {
@@ -387,7 +387,7 @@ suite("Schema Generate Test Suite", () => {
 
     const result: string = JSON.stringify(generateOneOfSchema(inputs));
     assert.ok(result.indexOf("undefined") === -1);
-    assert.equal(result, JSON.stringify(output));
+    assert.strictEqual(result, JSON.stringify(output));
   });
 
   test("Test 5 (generateOneOfSchema)", () => {
@@ -406,7 +406,7 @@ suite("Schema Generate Test Suite", () => {
 
     const result: string = JSON.stringify(generateOneOfSchema(inputs));
     assert.ok(result.indexOf("undefined") === -1);
-    assert.equal(result, JSON.stringify(output));
+    assert.strictEqual(result, JSON.stringify(output));
   });
 
   test("Test 6 (generateOneOfSchema)", () => {
@@ -429,6 +429,6 @@ suite("Schema Generate Test Suite", () => {
 
     const result: string = JSON.stringify(generateOneOfSchema(inputs));
     assert.ok(result.indexOf("undefined") === -1);
-    assert.equal(result, JSON.stringify(output));
+    assert.strictEqual(result, JSON.stringify(output));
   });
 });
