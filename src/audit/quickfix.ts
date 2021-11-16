@@ -43,6 +43,41 @@ import { findJsonNodeValue, getKeys, isObject } from "../json-utils";
 
 const registeredQuickFixes: { [key: string]: Fix } = {};
 
+// preferred order of the tags, mixed v2 and v3 tags
+export const topTags: string[] = [
+  "swagger",
+  "openapi",
+  "info",
+  "externalDocs",
+  "host",
+  "basePath",
+  "schemes",
+  "consumes",
+  "produces",
+  "tags",
+  "servers",
+  "components",
+  "paths",
+  "parameters",
+  "responses",
+  "security",
+  "securityDefinitions",
+  "definitions",
+];
+
+// preferred order of tags in v3 components
+const componentsTags: string[] = [
+  "schemas",
+  "responses",
+  "parameters",
+  "examples",
+  "requestBodies",
+  "headers",
+  "securitySchemes",
+  "links",
+  "callbacks",
+];
+
 function fixRegexReplace(context: FixContext) {
   const document = context.document;
   const fix = <RegexReplaceFix>context.fix;

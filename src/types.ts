@@ -180,6 +180,7 @@ export interface FixContext {
   bundle: BundleResult;
   root: Parsed;
   target: JsonNodeValue;
+  anchor?: JsonNodeValue;
   document: vscode.TextDocument;
 }
 

@@ -2,9 +2,8 @@ import * as vscode from "vscode";
 import * as yaml from "js-yaml";
 import { parserOptions } from "./parser-options";
 import { replace } from "@xliic/openapi-ast-node";
-import { InsertReplaceRenameFix, FixType, FixContext } from "./types";
+import { InsertReplaceRenameFix, FixType, FixContext, Fix } from "./types";
 import parameterSources from "./audit/quickfix-sources";
-import { topTags } from "./commands";
 import { parse, Parsed } from "@xliic/preserving-json-yaml-parser";
 import {
   findJsonNodeValue,
@@ -22,6 +21,7 @@ import {
   next,
   prev,
 } from "./json-utils";
+import { topTags } from "./audit/quickfix";
 
 function getBasicIndentation(document: vscode.TextDocument, root: Parsed): [number, string] {
   let depth = 0;
@@ -156,7 +156,18 @@ export function insertJsonNode(context: FixContext, value: string): [string, vsc
   // Insert pointer is either {} or [], nothing else
   if (ranges) {
     if (ranges.length > 0) {
-      [start, end] = ranges[ranges.length - 1];
+      let anchor: JsonNodeValue;
+      if (keepInsertionOrder(target)) {
+        const key = getInsertionKey(context.fix);
+        if (key) {
+          anchor = findInsertionAnchor(root, key);
+        }
+      }
+      if (isObject(target) && anchor) {
+        [start, end] = getRange(root, anchor);
+      } else {
+        [start, end] = ranges[ranges.length - 1];
+      }
     } else {
       [start, end] = getRange(root, target);
       start += 1;
@@ -177,28 +188,32 @@ export function insertYamlNode(context: FixContext, value: string): [string, vsc
   const document = context.document;
   const root = context.root;
   const target = context.target;
-  let insertAtTarget: any;
   let position: vscode.Position;
   let start: number, end: number;
 
-  if (getDepth(target) === 0) {
-    insertAtTarget = findTopLevelInsertionFollower(root, <InsertReplaceRenameFix>context.fix);
-    if (insertAtTarget) {
-      [start, end] = getRange(root, insertAtTarget);
-      position = document.positionAt(start);
+  let anchor: JsonNodeValue;
+  if (keepInsertionOrder(target)) {
+    const key = getInsertionKey(context.fix);
+    if (key) {
+      anchor = findInsertionAnchor(root, key, true);
     }
   }
 
-  // Insert pointer is either {} or [], nothing else
-  const ranges = getRanges(target);
-  if (!insertAtTarget && ranges && ranges.length > 0) {
-    [start, end] = ranges[ranges.length - 1];
-    position = document.positionAt(end);
-    if (position.line + 1 === document.lineCount) {
-      position = document.positionAt(start);
-      position = new vscode.Position(position.line, 0);
-    } else {
-      position = new vscode.Position(position.line + 1, 0);
+  if (anchor) {
+    [start, end] = getRange(root, anchor);
+    position = document.positionAt(start);
+  } else {
+    // Insert pointer is either {} or [], nothing else
+    const ranges = getRanges(target);
+    if (ranges && ranges.length > 0) {
+      [start, end] = ranges[ranges.length - 1];
+      position = document.positionAt(end);
+      if (position.line + 1 === document.lineCount) {
+        position = document.positionAt(start);
+        position = new vscode.Position(position.line, 0);
+      } else {
+        position = new vscode.Position(position.line + 1, 0);
+      }
     }
   }
 
@@ -303,19 +318,33 @@ export function getFixAsYamlString(context: FixContext): string {
   return text.replace(new RegExp("  ", "g"), "\t");
 }
 
-function findTopLevelInsertionFollower(root: Parsed, fix: InsertReplaceRenameFix): JsonNodeValue {
-  const keys = Object.keys(fix.fix);
-  if (keys && keys.length === 1) {
-    const n = topTags.indexOf(keys[0]);
-    if (n >= 0) {
-      for (let i = n + 1; i < topTags.length; i++) {
-        const pointer = `/${topTags[i]}`;
-        const result = findJsonNodeValue(root, pointer);
-        if (result) {
-          return result;
-        }
+function findInsertionAnchor(root: Parsed, element: string, before?: boolean): JsonNodeValue {
+  if (before === true) {
+    for (let position = topTags.indexOf(element) + 1; position < topTags.length; position++) {
+      const anchor = findJsonNodeValue(root, `/${topTags[position]}`);
+      if (anchor) {
+        return anchor;
       }
     }
+  } else {
+    for (let position = topTags.indexOf(element) - 1; position >= 0; position--) {
+      const anchor = findJsonNodeValue(root, `/${topTags[position]}`);
+      if (anchor) {
+        return anchor;
+      }
+    }
+  }
+  return null;
+}
+
+function keepInsertionOrder(target: JsonNodeValue): boolean {
+  return target.pointer === "";
+}
+
+function getInsertionKey(fix: Fix): string {
+  const keys = Object.keys(fix["fix"]);
+  if (keys.length === 1) {
+    return keys[0];
   }
   return null;
 }

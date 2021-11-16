@@ -127,6 +127,10 @@ export function isArray(node: JsonNodeValue): boolean {
   return getType(node.value) === "array";
 }
 
+export function isScalar(node: JsonNodeValue): boolean {
+  return !isObject(node) && !isArray(node);
+}
+
 export function getRanges(node: JsonNodeValue): any[] {
   const ranges = [];
   const container = node.value as Container;
