@@ -15,7 +15,7 @@ export function getRootAsJsonNodeValue(root: Parsed): JsonNodeValue {
 
 export function findJsonNodeValue(root: Parsed, pointer: string): JsonNodeValue {
   const value = find(root, pointer);
-  return value ? { value: value, pointer: pointer } : null;
+  return value === undefined ? null : { value: value, pointer: pointer };
 }
 
 export function getChildren(node: JsonNodeValue, keepOrder?: boolean): JsonNodeValue[] {
@@ -153,12 +153,12 @@ export function getKeys(node: JsonNodeValue, keepOrder?: boolean): any[] {
   return keys;
 }
 
-function getLastSegmentFromPointer(pointer: string): string {
+export function getLastSegmentFromPointer(pointer: string): string {
   const segments = parseJsonPointer(pointer);
   return segments[segments.length - 1];
 }
 
-function getParentPointer(pointer: string): string {
+export function getParentPointer(pointer: string): string {
   return pointer.substring(0, pointer.lastIndexOf("/"));
 }
 

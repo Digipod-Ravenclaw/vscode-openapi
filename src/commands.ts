@@ -4,11 +4,16 @@
 */
 
 import * as vscode from "vscode";
-import { findNodeAtOffset, joinJsonPointer, simpleClone } from "@xliic/preserving-json-yaml-parser";
+import {
+  find,
+  findNodeAtOffset,
+  joinJsonPointer,
+  simpleClone,
+} from "@xliic/preserving-json-yaml-parser";
 import * as snippets from "./generated/snippets.json";
 import { Cache } from "./cache";
 import { Fix, FixContext, FixType, OpenApiVersion } from "./types";
-import { findJsonNodeValue } from "./json-utils";
+import { findJsonNodeValue, getLastSegmentFromPointer, getParentPointer } from "./json-utils";
 import { fixInsert } from "./audit/quickfix";
 
 const commands = {
@@ -299,6 +304,31 @@ async function quickFixCommand(fix: Fix, cache: Cache) {
     document: document,
   };
 
+  let finalFix = context.fix["fix"];
+  let pointer = context.fix.pointer;
+  let pointerPrefix = "";
+  while (!find(root, pointer)) {
+    const key = getLastSegmentFromPointer(pointer);
+    pointer = getParentPointer(pointer);
+    const tmpFix = {};
+    if (isArray(key)) {
+      tmpFix[key] = [finalFix];
+    } else {
+      tmpFix[key] = finalFix;
+    }
+    finalFix = tmpFix as Fix;
+    pointerPrefix = "/" + key + pointerPrefix;
+  }
+
+  context.fix["fix"] = finalFix;
+  context.target = findJsonNodeValue(root, pointer);
+
+  if (pointerPrefix.length > 0) {
+    for (const parameter of context.fix.parameters) {
+      parameter.path = pointerPrefix + parameter.path;
+    }
+  }
+
   switch (fix.type) {
     case FixType.Insert:
       fixInsert(context);
@@ -308,4 +338,8 @@ async function quickFixCommand(fix: Fix, cache: Cache) {
     const snippetParameters = context.snippetParameters;
     await editor.insertSnippet(snippetParameters.snippet, snippetParameters.location);
   }
+}
+
+function isArray(key: string): boolean {
+  return key === "security" || key === "servers";
 }
