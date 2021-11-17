@@ -195,7 +195,7 @@ async function addSecurityDefinitionBasic(cache: Cache) {
 }
 
 async function addSecurityDefinitionOauth2Access(cache: Cache) {
-  await quickFixCommand(registeredSnippetQuickFixes["securityOauth2Access"], cache);
+  await quickFixCommand(registeredSnippetQuickFixes["securityOauth2Implicit"], cache);
 }
 
 async function addSecurityDefinitionApiKey(cache: Cache) {
@@ -251,14 +251,14 @@ async function v3addSecuritySchemeJWT(cache: Cache) {
 }
 
 async function v3addSecuritySchemeOauth2Access(cache: Cache) {
-  await quickFixCommand(registeredSnippetQuickFixes["componentsSecurityOauth2Access"], cache);
+  await quickFixCommand(registeredSnippetQuickFixes["componentsSecurityOauth2Implicit"], cache);
 }
 
 async function v3addServer(cache: Cache) {
   await quickFixCommand(registeredSnippetQuickFixes["server"], cache);
 }
 
-async function addOperation(cache: Cache) {
+async function addOperation(cache: Cache, node: any) {
   await quickFixCommand(registeredSnippetQuickFixes["operation"], cache);
 }
 
@@ -313,11 +313,12 @@ async function quickFixCommand(fix: Fix, cache: Cache) {
     const tmpFix = {};
     if (isArray(key)) {
       tmpFix[key] = [finalFix];
+      pointerPrefix = "/" + key + "/0" + pointerPrefix;
     } else {
       tmpFix[key] = finalFix;
+      pointerPrefix = "/" + key + pointerPrefix;
     }
     finalFix = tmpFix as Fix;
-    pointerPrefix = "/" + key + pointerPrefix;
   }
 
   context.fix["fix"] = finalFix;

@@ -2,7 +2,7 @@ import { getType } from "./audit/schema";
 import { Container, Location, Parsed } from "@xliic/preserving-json-yaml-parser/lib/types";
 import { getPreservedLocation } from "@xliic/preserving-json-yaml-parser/lib/preserve";
 import { find } from "@xliic/preserving-json-yaml-parser";
-import { parseJsonPointer } from "./pointer";
+import { joinJsonPointer, parseJsonPointer } from "./pointer";
 
 export interface JsonNodeValue {
   value: any;
@@ -119,6 +119,14 @@ export function prev(root: Parsed, node: JsonNodeValue): JsonNodeValue {
   return null;
 }
 
+export function getLastChild(node: JsonNodeValue) {
+  const children = getChildren(node, true);
+  if (children.length === 0) {
+    return null;
+  }
+  return children[children.length - 1];
+}
+
 export function isObject(node: JsonNodeValue): boolean {
   return getType(node.value) === "object";
 }
@@ -163,7 +171,9 @@ export function getParentPointer(pointer: string): string {
 }
 
 function generateChildPointer(pointer: string, key: string): string {
-  return pointer + "/" + key;
+  const segments = parseJsonPointer(pointer);
+  segments.push(key);
+  return joinJsonPointer(segments);
 }
 
 function comparator(container: Container) {

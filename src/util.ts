@@ -11,6 +11,7 @@ import {
   getDepth,
   getKey,
   getKeyRange,
+  getLastChild,
   getParent,
   getRange,
   getRanges,
@@ -23,7 +24,38 @@ import {
 } from "./json-utils";
 import { topTags } from "./audit/quickfix";
 
-function getBasicIndentation(document: vscode.TextDocument, root: Parsed): [number, string] {
+export class DocumentIndent {
+  private readonly indent: number;
+  private readonly indentChar: string;
+
+  constructor(indent: number, indentChar: string) {
+    this.indent = indent;
+    this.indentChar = indentChar;
+  }
+
+  public getIndent() {
+    return this.indent;
+  }
+
+  public getIndentChar() {
+    return this.indentChar;
+  }
+
+  public toDefaultString(): string {
+    return this.indentChar.repeat(this.indent);
+  }
+
+  public toString(n: number) {
+    return this.indentChar.repeat(n);
+  }
+
+  public static defaultInstance(): DocumentIndent {
+    return new DocumentIndent(2, " ");
+  }
+}
+
+// TODO: Add a TC and align with IDEA code
+function getBasicIndent(document: vscode.TextDocument, root: Parsed): DocumentIndent {
   let depth = 0;
   let start = 0;
   for (const child of getChildren({ value: root, pointer: "" })) {
@@ -40,13 +72,16 @@ function getBasicIndentation(document: vscode.TextDocument, root: Parsed): [numb
   const p0 = new vscode.Position(position.line, index - 1);
   const p1 = new vscode.Position(position.line, index);
   depth = document.languageId === "yaml" ? depth - 1 : depth;
-  return [Math.round(index / depth), document.getText(new vscode.Range(p0, p1))];
+  return new DocumentIndent(Math.round(index / depth), document.getText(new vscode.Range(p0, p1)));
 }
 
-function getCurrentIdentation(document: vscode.TextDocument, offset: number): number {
+function getText(document: vscode.TextDocument, start: number, end: number): string {
+  return document.getText(new vscode.Range(document.positionAt(start), document.positionAt(end)));
+}
+
+function getCurrentIndent(document: vscode.TextDocument, offset: number): number {
   const position = document.positionAt(offset);
-  const line = document.lineAt(position.line);
-  return line.firstNonWhitespaceCharacterIndex;
+  return document.lineAt(position.line).firstNonWhitespaceCharacterIndex;
 }
 
 function getLineByOffset(document: vscode.TextDocument, offset: number): vscode.TextLine {
@@ -59,17 +94,16 @@ function getTopLineByOffset(document: vscode.TextDocument, offset: number): vsco
 
 function shift(
   text: string,
-  indent: number,
-  char: string,
+  indent: DocumentIndent,
   padding: number,
   extra: number = 0,
-  addFirstPadding: boolean = true
+  prepend: boolean = true
 ): string {
-  if (addFirstPadding) {
-    text = char.repeat(padding) + text;
+  if (prepend) {
+    text = indent.toString(padding) + text;
   }
-  text = text.replace(new RegExp("\n", "g"), "\n" + char.repeat(padding + extra));
-  text = text.replace(new RegExp("\t", "g"), char.repeat(indent));
+  text = text.replace(new RegExp("\n", "g"), "\n" + indent.toString(padding + extra));
+  text = text.replace(new RegExp("\t", "g"), indent.toDefaultString());
   return text;
 }
 
@@ -148,40 +182,41 @@ export function insertJsonNode(context: FixContext, value: string): [string, vsc
   const root = context.root;
   const target = context.target;
   const snippet = context.snippet;
-  const ranges = getRanges(target);
-  const [indent, char] = getBasicIndentation(document, root);
-  let start: number, end: number;
-  let comma = ",";
 
-  // Insert pointer is either {} or [], nothing else
-  if (ranges) {
-    if (ranges.length > 0) {
-      let anchor: JsonNodeValue;
-      if (keepInsertionOrder(target)) {
-        const key = getInsertionKey(context.fix);
-        if (key) {
-          anchor = findInsertionAnchor(root, key);
-        }
-      }
-      if (isObject(target) && anchor) {
-        [start, end] = getRange(root, anchor);
-      } else {
-        [start, end] = ranges[ranges.length - 1];
-      }
-    } else {
-      [start, end] = getRange(root, target);
-      start += 1;
-      end = start;
-      comma = "";
-      // Snippet identation won't work correctly, add child padding here
-      value = char.repeat(indent) + value;
-    }
+  let start: number, end: number;
+  const indent = getBasicIndent(document, root);
+
+  let anchor: JsonNodeValue;
+  if (isObject(target)) {
+    anchor = getAnchor(root, target, context.fix) || getLastChild(target);
+  } else {
+    anchor = getLastChild(target);
   }
 
-  const index = getCurrentIdentation(document, start);
-  const position = document.positionAt(end);
-  value = comma + "\n" + (snippet ? value : shift(value, indent, char, index));
-  return [value, position];
+  if (anchor === null) {
+    [start, end] = getValueRange(root, target);
+    const text = getText(document, start, end);
+    end = start + 1;
+    const padding = getCurrentIndent(document, getRange(root, target)[0]) + indent.getIndent();
+    if (snippet) {
+      value = "\n\t" + value.replace(new RegExp("\n", "g"), "\n\t");
+    } else {
+      value = "\n" + indent.toString(padding) + shift(value, indent, padding, 0, false);
+    }
+    if (!text.includes("\n")) {
+      value += "\n";
+    }
+    return [value, document.positionAt(end)];
+  } else {
+    [start, end] = getRange(root, anchor);
+    const padding = getCurrentIndent(document, start);
+    const position = document.positionAt(end);
+    if (snippet) {
+      return [",\n" + value, position];
+    } else {
+      return [",\n" + shift(value, indent, padding), position];
+    }
+  }
 }
 
 export function insertYamlNode(context: FixContext, value: string): [string, vscode.Position] {
@@ -217,14 +252,14 @@ export function insertYamlNode(context: FixContext, value: string): [string, vsc
     }
   }
 
-  const index = getCurrentIdentation(document, start);
-  const [indent, char] = getBasicIndentation(document, root);
+  const index = getCurrentIndent(document, start);
+  const indent = getBasicIndent(document, root);
 
   if (isObject(target)) {
-    value = shift(value, indent, char, index) + "\n";
+    value = shift(value, indent, index) + "\n";
     return [value, position];
   } else if (isArray(target)) {
-    value = shift("- " + value, indent, char, index, "- ".length) + "\n";
+    value = shift("- " + value, indent, index, "- ".length) + "\n";
     return [value, position];
   }
 }
@@ -239,9 +274,9 @@ export function replaceJsonNode(context: FixContext, value: string): [string, vs
   const isArray = value.startsWith("[") && value.endsWith("]");
 
   if (isObject || isArray) {
-    const index = getCurrentIdentation(document, start);
-    const [indent, char] = getBasicIndentation(document, root);
-    value = shift(value, indent, char, index, 0, false);
+    const index = getCurrentIndent(document, start);
+    const indent = getBasicIndent(document, root);
+    value = shift(value, indent, index, 0, false);
   }
   return [value, new vscode.Range(document.positionAt(start), document.positionAt(end))];
 }
@@ -258,8 +293,8 @@ export function replaceYamlNode(context: FixContext, value: string): [string, vs
   const isArrayValue = i2 >= 0 && (i1 < 0 || (i1 > 0 && i1 > i2));
 
   if (isObjectValue || isArrayValue) {
-    const index = getCurrentIdentation(document, start);
-    const [indent, char] = getBasicIndentation(document, root);
+    const index = getCurrentIndent(document, start);
+    const indent = getBasicIndent(document, root);
     // Last array member end offset may be at the beggining of the next key node (next line)
     // In this case we must keep ident + \n symbols
     if (isArray(target)) {
@@ -268,14 +303,14 @@ export function replaceYamlNode(context: FixContext, value: string): [string, vs
       if (!line.text.trim().startsWith("-")) {
         const line = getTopLineByOffset(document, end);
         const endPosition = new vscode.Position(line.lineNumber, line.text.length);
-        value = shift(value, indent, char, index, 0, false);
+        value = shift(value, indent, index, 0, false);
         return [value, new vscode.Range(document.positionAt(start), endPosition)];
       }
     }
     // Replace plain value with not plain one (add a new line)
     const parent = getParent(context.root, target);
     if (!(isArray(target) || isObject(target)) && isObject(parent)) {
-      value = shift("\n" + value, indent, char, index, indent, false);
+      value = shift("\n" + value, indent, index, indent.getIndent(), false);
     }
   }
   return [value, new vscode.Range(document.positionAt(start), document.positionAt(end))];
@@ -332,6 +367,16 @@ function findInsertionAnchor(root: Parsed, element: string, before?: boolean): J
       if (anchor) {
         return anchor;
       }
+    }
+  }
+  return null;
+}
+
+function getAnchor(root: Parsed, target: JsonNodeValue, fix: Fix): JsonNodeValue {
+  if (keepInsertionOrder(target)) {
+    const key = getInsertionKey(fix);
+    if (key) {
+      return findInsertionAnchor(root, key);
     }
   }
   return null;
