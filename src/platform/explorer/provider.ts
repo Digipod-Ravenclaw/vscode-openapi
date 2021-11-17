@@ -1,18 +1,22 @@
 import * as vscode from "vscode";
 import { ExplorerNode, RootNode } from "./nodes";
-import { PlatformContext } from "../types";
+import { PlatformStore } from "../stores/platform-store";
+import { FavoritesStore } from "../stores/favorites-store";
 
 export class CollectionsProvider implements vscode.TreeDataProvider<ExplorerNode> {
   private _onDidChangeTreeData: vscode.EventEmitter<void> = new vscode.EventEmitter<void>();
   readonly onDidChangeTreeData: vscode.Event<void> = this._onDidChangeTreeData.event;
 
-  root: RootNode;
+  public readonly root: RootNode;
 
-  constructor(private options: PlatformContext) {
-    this.root = new RootNode(options);
+  constructor(store: PlatformStore, favoritesStore: FavoritesStore) {
+    this.root = new RootNode(store, favoritesStore);
   }
 
   getParent?(element: ExplorerNode): vscode.ProviderResult<ExplorerNode> {
+    if (element) {
+      return element.getParent();
+    }
     return null;
   }
 

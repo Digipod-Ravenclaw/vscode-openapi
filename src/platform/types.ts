@@ -150,6 +150,13 @@ export interface CollectionFilter {
   owner: "OWNER" | "ALL";
 }
 
+export interface PlatformConnection {
+  apiToken: string;
+  userAgent: string;
+  referer: string;
+  platformUrl: string;
+}
+
 export interface PlatformContext {
   foo: {
     filter: CollectionFilter;
@@ -160,11 +167,8 @@ export interface PlatformContext {
   };
   memento: vscode.Memento;
   context: any;
-  platformUrl: string;
   logger: Logger;
-  apiToken: string;
-  userAgent: string;
-  referer: string;
+  connection: PlatformConnection;
 }
 
 export interface Logger {

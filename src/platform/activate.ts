@@ -10,6 +10,8 @@ import { CollectionsProvider } from "./explorer/provider";
 import { PlatformContext } from "./types";
 import { AuditContext } from "../types";
 import { registerCommands } from "./commands";
+import { PlatformStore } from "./stores/platform-store";
+import { FavoritesStore } from "./stores/favorites-store";
 
 export function activate(
   context: vscode.ExtensionContext,
@@ -29,10 +31,12 @@ export function activate(
         owner: "ALL",
       },
     },
-    platformUrl: configuration.get("platformUrl"),
-    apiToken: configuration.get("platformApiToken"),
-    userAgent: "foo",
-    referer: "bar",
+    connection: {
+      platformUrl: configuration.get("platformUrl"),
+      apiToken: configuration.get("platformApiToken"),
+      userAgent: "foo",
+      referer: "bar",
+    },
     logger: {
       fatal: (message: string) => null,
       error: (message: string) => null,
@@ -42,7 +46,10 @@ export function activate(
     },
   };
 
-  platformContext.explorer.provider = new CollectionsProvider(platformContext);
+  const store = new PlatformStore(platformContext);
+  const favoritesStore = new FavoritesStore(context);
+
+  platformContext.explorer.provider = new CollectionsProvider(store, favoritesStore);
   platformContext.explorer.tree = vscode.window.createTreeView("platformExplorer", {
     treeDataProvider: platformContext.explorer.provider,
   });
@@ -60,5 +67,13 @@ export function activate(
   });
   */
 
-  registerCommands(context, platformContext, auditContext, cache);
+  registerCommands(
+    context,
+    platformContext,
+    auditContext,
+    store,
+    favoritesStore,
+    platformContext.explorer.provider,
+    cache
+  );
 }

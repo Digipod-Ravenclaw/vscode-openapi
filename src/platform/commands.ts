@@ -1,18 +1,23 @@
-import { stringify } from "@xliic/preserving-json-yaml-parser";
-import { type } from "os";
 import * as vscode from "vscode";
+import { stringify } from "@xliic/preserving-json-yaml-parser";
 
 import { Cache } from "../cache";
 import { AuditContext } from "../types";
-import { createApi, createCollection, deleteApi, deleteCollection } from "./api";
 import { Editor } from "./editor";
-import { ApiNode, CollectionNode, FavoriteCollectionsNode } from "./explorer/nodes";
+import { ApiNode, CollectionNode, FavoriteCollectionNode } from "./explorer/nodes";
 import { PlatformContext } from "./types";
+import { PlatformStore } from "./stores/platform-store";
+import { CollectionsProvider } from "./explorer/provider";
+import { confirmed } from "./util";
+import { FavoritesStore } from "./stores/favorites-store";
 
 export function registerCommands(
   context: vscode.ExtensionContext,
   platformContext: PlatformContext,
   auditContext: AuditContext,
+  store: PlatformStore,
+  favoritesStore: FavoritesStore,
+  provider: CollectionsProvider,
   cache: Cache
 ): vscode.Disposable[] {
   const { explorer } = platformContext;
@@ -32,8 +37,8 @@ export function registerCommands(
     const name = await vscode.window.showInputBox({
       prompt: "New Collection name",
     });
-    const collection = await createCollection(name, platformContext);
-    const collectionNode = new CollectionNode(collection, platformContext);
+    const collection = await store.createCollection(name);
+    const collectionNode = new CollectionNode(store, provider.root.collections, collection);
     explorer.provider.refresh();
     explorer.tree.reveal(collectionNode, { focus: true });
   });
@@ -41,14 +46,8 @@ export function registerCommands(
   vscode.commands.registerCommand(
     "openapi.platform.deleteCollection",
     async (collection: CollectionNode) => {
-      const confirmation = await vscode.window.showInformationMessage(
-        "Are you sure you want to delete selected Collection?",
-        "Yes",
-        "Cancel"
-      );
-
-      if (confirmation && confirmation === "Yes") {
-        await deleteCollection(collection.getCollectionId(), platformContext);
+      if (await confirmed("Are you sure you want to delete selected Collection?")) {
+        await store.deleteCollection(collection.getCollectionId());
         explorer.provider.refresh();
       }
     }
@@ -56,14 +55,9 @@ export function registerCommands(
 
   vscode.commands.registerCommand(
     "openapi.platform.collectionRemoveFromFavorite",
-    async (collection: FavoriteCollectionsNode) => {
-      const confirmation = await vscode.window.showInformationMessage(
-        "Are you sure you want to remove selected collection from Favorite?",
-        "Yes",
-        "Cancel"
-      );
-
-      if (confirmation && confirmation === "Yes") {
+    async (collection: FavoriteCollectionNode) => {
+      if (await confirmed("Are you sure you want to remove selected collection from Favorite?")) {
+        favoritesStore.removeFavoriteCollection(collection.getCollectionId());
         explorer.provider.refresh();
       }
     }
@@ -72,12 +66,7 @@ export function registerCommands(
   vscode.commands.registerCommand(
     "openapi.platform.collectionAddToFavorite",
     async (collection: CollectionNode) => {
-      let favorite = platformContext.memento.get<string[]>("openapi.favorite");
-      if (!favorite) {
-        favorite = [];
-      }
-      favorite.push(collection.getCollectionId());
-      platformContext.memento.update("openapi.favorite", favorite);
+      favoritesStore.addFavoriteCollection(collection.getCollectionId());
       explorer.provider.refresh();
     }
   );
@@ -109,29 +98,20 @@ export function registerCommands(
         const title = bundle.value.info.title;
 
         const json = stringify(bundle.value);
-        const api = await createApi(
-          collection.getCollectionId(),
-          title,
-          Buffer.from(json),
-          platformContext
-        );
+
+        const api = await store.createApi(collection.getCollectionId(), title, json);
+
+        const apiNode = new ApiNode(store, collection, api);
+
         explorer.provider.refresh();
-        // FIXME improve getParent() implementation in tree data provider
-        //const apiNode = new ApiNode(api, options);
-        //tree.reveal(apiNode, { focus: true });
+        explorer.tree.reveal(apiNode, { focus: true });
       }
     }
   );
 
   vscode.commands.registerCommand("openapi.platform.deleteApi", async (api: ApiNode) => {
-    const confirmation = await vscode.window.showInformationMessage(
-      "Are you sure you want to delete selected API?",
-      "Yes",
-      "Cancel"
-    );
-
-    if (confirmation && confirmation === "Yes") {
-      await deleteApi(api.getApiId(), platformContext);
+    if (await confirmed("Are you sure you want to delete selected API")) {
+      await store.deleteApi(api.getApiId());
       explorer.provider.refresh();
     }
   });
@@ -172,6 +152,7 @@ export function registerCommands(
   });
 
   vscode.commands.registerCommand("openapi.platform.refreshCollections", async () => {
+    store.refresh();
     explorer.provider.refresh();
   });
 

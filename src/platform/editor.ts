@@ -72,7 +72,12 @@ export class Editor {
       }
 
       const json = stringify(bundle.value);
-      const api = await updateApi(this.apiId, Buffer.from(json), this.options);
+      const api = await updateApi(
+        this.apiId,
+        Buffer.from(json),
+        this.options.connection,
+        this.options.logger
+      );
 
       await delay(2000);
 
@@ -103,14 +108,18 @@ export class Editor {
   }
 
   public async getData(): Promise<string> {
-    const api = await readApi(this.apiId, this.options);
+    const api = await readApi(this.apiId, this.options.connection, this.options.logger);
     const buf = Buffer.from(api.desc.specfile, "base64");
     const parsed = JSON.parse(buf.toString("utf-8"));
     return JSON.stringify(parsed, null, 2);
   }
 
   public async getAssessment(): Promise<any> {
-    const report = await readAssessmentReport(this.apiId, this.options);
+    const report = await readAssessmentReport(
+      this.apiId,
+      this.options.connection,
+      this.options.logger
+    );
     return report;
   }
 
