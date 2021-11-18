@@ -2,7 +2,7 @@ import * as vscode from "vscode";
 import * as yaml from "js-yaml";
 import { parserOptions } from "./parser-options";
 import { replace } from "@xliic/openapi-ast-node";
-import { InsertReplaceRenameFix, FixType, FixContext, Fix } from "./types";
+import { InsertReplaceRenameFix, FixType, FixContext, Fix, OpenApiVersion } from "./types";
 import parameterSources from "./audit/quickfix-sources";
 import { parse, Parsed } from "@xliic/preserving-json-yaml-parser";
 import {
@@ -15,6 +15,7 @@ import {
   getParent,
   getRange,
   getRanges,
+  getRootAsJsonNodeValue,
   getValueRange,
   isArray,
   isObject,
@@ -22,7 +23,7 @@ import {
   next,
   prev,
 } from "./json-utils";
-import { topTags } from "./audit/quickfix";
+import { componentsTags, topTags } from "./audit/quickfix";
 
 export class DocumentIndent {
   private readonly indent: number;
@@ -54,25 +55,33 @@ export class DocumentIndent {
   }
 }
 
-// TODO: Add a TC and align with IDEA code
 function getBasicIndent(document: vscode.TextDocument, root: Parsed): DocumentIndent {
-  let depth = 0;
-  let start = 0;
-  for (const child of getChildren({ value: root, pointer: "" })) {
-    if (isObject(child)) {
-      const tmp = getRanges(child);
-      if (tmp && tmp.length > 0) {
-        depth = 2;
-        start = tmp[0][0];
+  const children = getChildren(getRootAsJsonNodeValue(root));
+  if (document.languageId === "json") {
+    if (children.length > 0) {
+      const position = document.positionAt(getRange(root, children[0])[0]);
+      const index = document.lineAt(position.line).firstNonWhitespaceCharacterIndex;
+      return new DocumentIndent(index, getCharAtIndex(document, position.line, index));
+    }
+  } else {
+    for (const child of children) {
+      if (isObject(child)) {
+        const ranges = getRanges(child);
+        if (ranges && ranges.length > 0) {
+          const position = document.positionAt(ranges[0][0]);
+          const index = Math.round(document.lineAt(position.line).firstNonWhitespaceCharacterIndex);
+          return new DocumentIndent(index, getCharAtIndex(document, position.line, index));
+        }
       }
     }
   }
-  const position = document.positionAt(start);
-  const index = document.lineAt(position.line).firstNonWhitespaceCharacterIndex;
-  const p0 = new vscode.Position(position.line, index - 1);
-  const p1 = new vscode.Position(position.line, index);
-  depth = document.languageId === "yaml" ? depth - 1 : depth;
-  return new DocumentIndent(Math.round(index / depth), document.getText(new vscode.Range(p0, p1)));
+  return DocumentIndent.defaultInstance();
+}
+
+function getCharAtIndex(document: vscode.TextDocument, line: number, index: number): string {
+  return document.getText(
+    new vscode.Range(new vscode.Position(line, index - 1), new vscode.Position(line, index))
+  );
 }
 
 function getText(document: vscode.TextDocument, start: number, end: number): string {
@@ -188,7 +197,7 @@ export function insertJsonNode(context: FixContext, value: string): [string, vsc
 
   let anchor: JsonNodeValue;
   if (isObject(target)) {
-    anchor = getAnchor(root, target, context.fix) || getLastChild(target);
+    anchor = keepInsertionOrder(context) ? getAnchor(context, true) : getLastChild(target);
   } else {
     anchor = getLastChild(target);
   }
@@ -205,6 +214,9 @@ export function insertJsonNode(context: FixContext, value: string): [string, vsc
     }
     if (!text.includes("\n")) {
       value += "\n";
+    }
+    if (getChildren(target).length > 0) {
+      value += ",";
     }
     return [value, document.positionAt(end)];
   } else {
@@ -227,13 +239,11 @@ export function insertYamlNode(context: FixContext, value: string): [string, vsc
   let start: number, end: number;
 
   let anchor: JsonNodeValue;
-  if (keepInsertionOrder(target)) {
-    const key = getInsertionKey(context.fix);
-    if (key) {
-      anchor = findInsertionAnchor(root, key, true);
-    }
+  if (isObject(target)) {
+    anchor = getAnchor(context, false);
   }
 
+  let newLine = "";
   if (anchor) {
     [start, end] = getRange(root, anchor);
     position = document.positionAt(start);
@@ -243,10 +253,13 @@ export function insertYamlNode(context: FixContext, value: string): [string, vsc
     if (ranges && ranges.length > 0) {
       [start, end] = ranges[ranges.length - 1];
       position = document.positionAt(end);
-      if (position.line + 1 === document.lineCount) {
+      if (position.line + 1 === document.lineCount && document.lineCount > 1) {
         position = document.positionAt(start);
         position = new vscode.Position(position.line, 0);
       } else {
+        if (position.line + 1 === document.lineCount) {
+          newLine = "\n";
+        }
         position = new vscode.Position(position.line + 1, 0);
       }
     }
@@ -256,7 +269,7 @@ export function insertYamlNode(context: FixContext, value: string): [string, vsc
   const indent = getBasicIndent(document, root);
 
   if (isObject(target)) {
-    value = shift(value, indent, index) + "\n";
+    value = newLine + shift(value, indent, index) + "\n";
     return [value, position];
   } else if (isArray(target)) {
     value = shift("- " + value, indent, index, "- ".length) + "\n";
@@ -353,47 +366,6 @@ export function getFixAsYamlString(context: FixContext): string {
   return text.replace(new RegExp("  ", "g"), "\t");
 }
 
-function findInsertionAnchor(root: Parsed, element: string, before?: boolean): JsonNodeValue {
-  if (before === true) {
-    for (let position = topTags.indexOf(element) + 1; position < topTags.length; position++) {
-      const anchor = findJsonNodeValue(root, `/${topTags[position]}`);
-      if (anchor) {
-        return anchor;
-      }
-    }
-  } else {
-    for (let position = topTags.indexOf(element) - 1; position >= 0; position--) {
-      const anchor = findJsonNodeValue(root, `/${topTags[position]}`);
-      if (anchor) {
-        return anchor;
-      }
-    }
-  }
-  return null;
-}
-
-function getAnchor(root: Parsed, target: JsonNodeValue, fix: Fix): JsonNodeValue {
-  if (keepInsertionOrder(target)) {
-    const key = getInsertionKey(fix);
-    if (key) {
-      return findInsertionAnchor(root, key);
-    }
-  }
-  return null;
-}
-
-function keepInsertionOrder(target: JsonNodeValue): boolean {
-  return target.pointer === "";
-}
-
-function getInsertionKey(fix: Fix): string {
-  const keys = Object.keys(fix["fix"]);
-  if (keys.length === 1) {
-    return keys[0];
-  }
-  return null;
-}
-
 function handleParameters(context: FixContext, text: string): string {
   const replacements = [];
   const { issues, fix, version, bundle, document, snippet } = context;
@@ -480,4 +452,50 @@ export function safeParse(text: string, languageId: string): Parsed {
     throw new Error("Can't parse OpenAPI file");
   }
   return root;
+}
+
+function findInsertionAnchor(
+  root: Parsed,
+  element: string,
+  tags: string[],
+  prefix: string,
+  after: boolean
+): JsonNodeValue {
+  if (after === false) {
+    for (let position = tags.indexOf(element) + 1; position < tags.length; position++) {
+      const anchor = findJsonNodeValue(root, `${prefix}/${tags[position]}`);
+      if (anchor) {
+        return anchor;
+      }
+    }
+  } else {
+    for (let position = tags.indexOf(element) - 1; position >= 0; position--) {
+      const anchor = findJsonNodeValue(root, `${prefix}/${tags[position]}`);
+      if (anchor) {
+        return anchor;
+      }
+    }
+  }
+  return null;
+}
+
+function keepInsertionOrder(context: FixContext): boolean {
+  const { version, target } = context;
+  return (
+    target.pointer === "" || (version === OpenApiVersion.V3 && target.pointer === "/components")
+  );
+}
+
+function getAnchor(context: FixContext, after: boolean): JsonNodeValue {
+  const { root, version, target, fix } = context;
+  const keys = Object.keys(fix["fix"]);
+  if (keys.length === 1) {
+    const key = keys[0];
+    if (target.pointer === "") {
+      return findInsertionAnchor(root, key, topTags, "", after);
+    } else if (version === OpenApiVersion.V3 && target.pointer === "/components") {
+      return findInsertionAnchor(root, key, componentsTags, "/components", after);
+    }
+  }
+  return null;
 }

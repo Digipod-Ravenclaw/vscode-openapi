@@ -66,7 +66,7 @@ export const topTags: string[] = [
 ];
 
 // preferred order of tags in v3 components
-const componentsTags: string[] = [
+export const componentsTags: string[] = [
   "schemas",
   "responses",
   "parameters",
