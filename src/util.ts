@@ -5,24 +5,7 @@ import { replace } from "@xliic/openapi-ast-node";
 import { InsertReplaceRenameFix, FixType, FixContext, Fix, OpenApiVersion } from "./types";
 import parameterSources from "./audit/quickfix-sources";
 import { parse, Parsed } from "@xliic/preserving-json-yaml-parser";
-import {
-  findJsonNodeValue,
-  getChildren,
-  getDepth,
-  getKey,
-  getKeyRange,
-  getLastChild,
-  getParent,
-  getRange,
-  getRanges,
-  getRootAsJsonNodeValue,
-  getValueRange,
-  isArray,
-  isObject,
-  JsonNodeValue,
-  next,
-  prev,
-} from "./json-utils";
+import { findJsonNodeValue, getRootAsJsonNodeValue, JsonNodeValue } from "./json-utils";
 import { componentsTags, topTags } from "./audit/quickfix";
 
 export class DocumentIndent {
@@ -56,19 +39,19 @@ export class DocumentIndent {
 }
 
 function getBasicIndent(document: vscode.TextDocument, root: Parsed): DocumentIndent {
-  const children = getChildren(getRootAsJsonNodeValue(root));
+  const children = getRootAsJsonNodeValue(root).getChildren();
   if (document.languageId === "json") {
     if (children.length > 0) {
-      const position = document.positionAt(getRange(root, children[0])[0]);
+      const position = document.positionAt(children[0].getRange(root)[0]);
       const index = document.lineAt(position.line).firstNonWhitespaceCharacterIndex;
       return new DocumentIndent(index, getCharAtIndex(document, position.line, index));
     }
   } else {
     for (const child of children) {
-      if (isObject(child)) {
-        const ranges = getRanges(child);
-        if (ranges && ranges.length > 0) {
-          const position = document.positionAt(ranges[0][0]);
+      if (child.isObject()) {
+        const firstChild = child.getFirstChild();
+        if (firstChild) {
+          const position = document.positionAt(firstChild.getRange(root)[0]);
           const index = Math.round(document.lineAt(position.line).firstNonWhitespaceCharacterIndex);
           return new DocumentIndent(index, getCharAtIndex(document, position.line, index));
         }
@@ -119,7 +102,7 @@ function shift(
 export function renameKeyNode(context: FixContext): vscode.Range {
   const document = context.document;
   const target = context.target;
-  const [start, end] = getKeyRange(context.root, target);
+  const [start, end] = target.getKeyRange(context.root);
   return new vscode.Range(document.positionAt(start), document.positionAt(end));
 }
 
@@ -127,21 +110,21 @@ export function deleteJsonNode(context: FixContext): vscode.Range {
   const document = context.document;
   const target = context.target;
   let startPosition: vscode.Position;
-  const prevTarget = prev(context.root, target);
+  const prevTarget = target.prev(context.root);
 
   if (prevTarget) {
-    const [, end] = getRange(context.root, prevTarget);
+    const [, end] = prevTarget.getRange(context.root);
     const line = getLineByOffset(document, end);
-    const nextTarget = next(context.root, target);
+    const nextTarget = target.next(context.root);
     startPosition = new vscode.Position(line.lineNumber, line.text.length + (nextTarget ? 0 : -1));
   } else {
-    const parent = getParent(context.root, target);
-    const [start] = getRange(context.root, parent);
+    const parent = target.getParent(context.root);
+    const [start] = parent.getRange(context.root);
     const line = getLineByOffset(document, start);
     startPosition = new vscode.Position(line.lineNumber, line.text.length);
   }
 
-  const [, end] = getRange(context.root, target);
+  const [, end] = target.getRange(context.root);
   const line = getLineByOffset(document, end);
   const endPosition = new vscode.Position(line.lineNumber, line.text.length);
 
@@ -151,17 +134,17 @@ export function deleteJsonNode(context: FixContext): vscode.Range {
 export function deleteYamlNode(context: FixContext): vscode.Range {
   const document = context.document;
   const target = context.target;
-  const [start, end] = getRange(context.root, target);
+  const [start, end] = target.getRange(context.root);
 
   let apply = false;
   let startPosition = document.positionAt(start);
   let endPosition = document.positionAt(end);
-  const parent = getParent(context.root, target);
+  const parent = target.getParent(context.root);
 
-  if (isArray(parent)) {
-    const nextTarget = next(context.root, target);
+  if (parent.isArray()) {
+    const nextTarget = target.next(context.root);
     if (nextTarget) {
-      const line = getLineByOffset(document, getRange(context.root, nextTarget)[0]);
+      const line = getLineByOffset(document, nextTarget.getRange(context.root)[0]);
       startPosition = document.positionAt(start - "- ".length);
       endPosition = new vscode.Position(line.lineNumber, line.firstNonWhitespaceCharacterIndex);
     } else {
@@ -169,10 +152,10 @@ export function deleteYamlNode(context: FixContext): vscode.Range {
       endPosition = new vscode.Position(getLineByOffset(document, end).lineNumber + 1, 0);
     }
     apply = true;
-  } else if (isObject(parent)) {
-    const nextTarget = next(context.root, target);
+  } else if (parent.isObject()) {
+    const nextTarget = target.next(context.root);
     if (nextTarget) {
-      const line = getLineByOffset(document, getRange(context.root, nextTarget)[0]);
+      const line = getLineByOffset(document, nextTarget.getRange(context.root)[0]);
       endPosition = new vscode.Position(line.lineNumber, line.firstNonWhitespaceCharacterIndex);
     } else {
       startPosition = new vscode.Position(getLineByOffset(document, start).lineNumber, 0);
@@ -196,17 +179,17 @@ export function insertJsonNode(context: FixContext, value: string): [string, vsc
   const indent = getBasicIndent(document, root);
 
   let anchor: JsonNodeValue;
-  if (isObject(target)) {
-    anchor = keepInsertionOrder(context) ? getAnchor(context, true) : getLastChild(target);
+  if (target.isObject()) {
+    anchor = keepInsertionOrder(context) ? getAnchor(context, true) : target.getLastChild();
   } else {
-    anchor = getLastChild(target);
+    anchor = target.getLastChild();
   }
 
   if (anchor === null) {
-    [start, end] = getValueRange(root, target);
+    [start, end] = target.getValueRange(root);
     const text = getText(document, start, end);
     end = start + 1;
-    const padding = getCurrentIndent(document, getRange(root, target)[0]) + indent.getIndent();
+    const padding = getCurrentIndent(document, target.getRange(root)[0]) + indent.getIndent();
     if (snippet) {
       value = "\n\t" + value.replace(new RegExp("\n", "g"), "\n\t");
     } else {
@@ -215,12 +198,12 @@ export function insertJsonNode(context: FixContext, value: string): [string, vsc
     if (!text.includes("\n")) {
       value += "\n";
     }
-    if (getChildren(target).length > 0) {
+    if (target.getChildren().length > 0) {
       value += ",";
     }
     return [value, document.positionAt(end)];
   } else {
-    [start, end] = getRange(root, anchor);
+    [start, end] = anchor.getRange(root);
     const padding = getCurrentIndent(document, start);
     const position = document.positionAt(end);
     if (snippet) {
@@ -239,19 +222,19 @@ export function insertYamlNode(context: FixContext, value: string): [string, vsc
   let start: number, end: number;
 
   let anchor: JsonNodeValue;
-  if (isObject(target)) {
+  if (target.isObject()) {
     anchor = getAnchor(context, false);
   }
 
   let newLine = "";
   if (anchor) {
-    [start, end] = getRange(root, anchor);
+    [start, end] = anchor.getRange(root);
     position = document.positionAt(start);
   } else {
     // Insert pointer is either {} or [], nothing else
-    const ranges = getRanges(target);
-    if (ranges && ranges.length > 0) {
-      [start, end] = ranges[ranges.length - 1];
+    const lastChild = target.getLastChild();
+    if (lastChild) {
+      [start, end] = lastChild.getRange(root);
       position = document.positionAt(end);
       if (position.line + 1 === document.lineCount && document.lineCount > 1) {
         position = document.positionAt(start);
@@ -268,10 +251,10 @@ export function insertYamlNode(context: FixContext, value: string): [string, vsc
   const index = getCurrentIndent(document, start);
   const indent = getBasicIndent(document, root);
 
-  if (isObject(target)) {
+  if (target.isObject()) {
     value = newLine + shift(value, indent, index) + "\n";
     return [value, position];
-  } else if (isArray(target)) {
+  } else if (target.isArray()) {
     value = shift("- " + value, indent, index, "- ".length) + "\n";
     return [value, position];
   }
@@ -281,7 +264,7 @@ export function replaceJsonNode(context: FixContext, value: string): [string, vs
   const document = context.document;
   const root = context.root;
   const target = context.target;
-  const [start, end] = getValueRange(root, target);
+  const [start, end] = target.getValueRange(root);
 
   const isObject = value.startsWith("{") && value.endsWith("}");
   const isArray = value.startsWith("[") && value.endsWith("]");
@@ -298,7 +281,7 @@ export function replaceYamlNode(context: FixContext, value: string): [string, vs
   const document = context.document;
   const root = context.root;
   const target = context.target;
-  const [start, end] = getValueRange(root, target);
+  const [start, end] = target.getValueRange(root);
 
   const i1 = value.indexOf(":");
   const i2 = value.indexOf("- ");
@@ -310,7 +293,7 @@ export function replaceYamlNode(context: FixContext, value: string): [string, vs
     const indent = getBasicIndent(document, root);
     // Last array member end offset may be at the beggining of the next key node (next line)
     // In this case we must keep ident + \n symbols
-    if (isArray(target)) {
+    if (target.isArray()) {
       const line = getLineByOffset(document, end);
       // But do not handle the case if the last array member = the last item in the doc
       if (!line.text.trim().startsWith("-")) {
@@ -321,8 +304,8 @@ export function replaceYamlNode(context: FixContext, value: string): [string, vs
       }
     }
     // Replace plain value with not plain one (add a new line)
-    const parent = getParent(context.root, target);
-    if (!(isArray(target) || isObject(target)) && isObject(parent)) {
+    const parent = target.getParent(context.root);
+    if (!(target.isArray() || target.isObject()) && parent.isObject()) {
       value = shift("\n" + value, indent, index, indent.getIndent(), false);
     }
   }
@@ -341,7 +324,7 @@ export function getFixAsJsonString(context: FixContext): string {
   if (snippet && (type === FixType.Insert || type === FixType.Replace)) {
     text = text.replace(new RegExp("\\$ref", "g"), "\\$ref");
   }
-  if (isObject(context.target) && type === FixType.Insert) {
+  if (context.target.isObject() && type === FixType.Insert) {
     text = text.replace("{\n\t", "");
     text = text.replace("\n}", "");
     // Replace only trailing \t, i.e. a\t\t\ta\t\ta\t -> a\t\ta\ta
@@ -379,7 +362,7 @@ function handleParameters(context: FixContext, text: string): string {
     const replaceKey = parameter.type === "key";
     let phValues = parameter.values;
     const target = findJsonNodeValue(root, pointer);
-    let defaultValue = replaceKey ? getKey(target) : target.value;
+    let defaultValue = replaceKey ? target.getKey() : target.value;
     let cacheValues = null;
 
     if (parameter.source && parameterSources[parameter.source]) {

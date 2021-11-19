@@ -1,8 +1,8 @@
 import assert from "assert";
 import { generateSchema, generateOneOfSchema } from "../../audit/schema";
 
-suite("Schema Generate Test Suite", () => {
-  test("Test 1", () => {
+suite("Schema Generate", () => {
+  test("Schema 1", () => {
     const input = [
       {
         id: 2,
@@ -130,7 +130,7 @@ suite("Schema Generate Test Suite", () => {
     assert.strictEqual(result, JSON.stringify(output));
   });
 
-  test("Test 2", () => {
+  test("Schema 2", () => {
     const input = {
       paths: {
         "/products": {
@@ -308,7 +308,7 @@ suite("Schema Generate Test Suite", () => {
     assert.strictEqual(result, JSON.stringify(output));
   });
 
-  test("Test 3", () => {
+  test("Schema 3", () => {
     const input = [
       [
         [1, 2],
@@ -342,7 +342,7 @@ suite("Schema Generate Test Suite", () => {
     assert.strictEqual(result, JSON.stringify(output));
   });
 
-  test("Test 4 (generateOneOfSchema)", () => {
+  test("Schema 4 (generateOneOfSchema)", () => {
     const inputs = [{ a: "hello" }, { b: 12 }, [{ c: true }, { d: 13 }], { b: 14 }];
 
     const output = {
@@ -390,7 +390,7 @@ suite("Schema Generate Test Suite", () => {
     assert.strictEqual(result, JSON.stringify(output));
   });
 
-  test("Test 5 (generateOneOfSchema)", () => {
+  test("Schema 5 (generateOneOfSchema)", () => {
     const inputs = [{ a: "hello" }];
 
     const output = {
@@ -409,7 +409,7 @@ suite("Schema Generate Test Suite", () => {
     assert.strictEqual(result, JSON.stringify(output));
   });
 
-  test("Test 6 (generateOneOfSchema)", () => {
+  test("Schema 6 (generateOneOfSchema)", () => {
     const inputs = [{ a: "hello" }];
 
     inputs.push(inputs[0]);

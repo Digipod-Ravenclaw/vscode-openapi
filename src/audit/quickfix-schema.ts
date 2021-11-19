@@ -15,14 +15,7 @@ import { Cache } from "../cache";
 import { generateSchema, generateOneOfSchema } from "./schema";
 import { updateReport, fixInsert } from "./quickfix";
 import { simpleClone, parse, Parsed, find } from "@xliic/preserving-json-yaml-parser";
-import {
-  findJsonNodeValue,
-  getChildren,
-  getKey,
-  getRootAsJsonNodeValue,
-  isObject,
-  JsonNodeValue,
-} from "../json-utils";
+import { findJsonNodeValue, getRootAsJsonNodeValue, JsonNodeValue } from "../json-utils";
 
 export async function generateSchemaFixCommand(
   editor: vscode.TextEditor,
@@ -138,7 +131,7 @@ async function insertSchemaInline(
   const target = findJsonNodeValue(root, pointer);
 
   const newFix = <InsertReplaceRenameFix>simpleClone(fix);
-  newFix.fix = getKey(target) === "schema" ? genSchema : { schema: genSchema };
+  newFix.fix = target.getKey() === "schema" ? genSchema : { schema: genSchema };
   delete newFix.parameters;
 
   const context: FixContext = {
@@ -250,7 +243,7 @@ async function insertSchemaByRef(
 
   const schemaRefFix = <InsertReplaceRenameFix>simpleClone(fix);
   if (version === OpenApiVersion.V2) {
-    if (getKey(target2) === "schema") {
+    if (target2.getKey() === "schema") {
       schemaRefFix.fix = {
         $ref: "#/definitions/" + schemaName,
       };
@@ -258,7 +251,7 @@ async function insertSchemaByRef(
       schemaRefFix.fix["schema"]["$ref"] = "#/definitions/" + schemaName;
     }
   } else {
-    if (getKey(target2) === "schema") {
+    if (target2.getKey() === "schema") {
       schemaRefFix.fix = {
         $ref: "#/components/schemas/" + schemaName,
       };
@@ -299,13 +292,13 @@ async function astToJsonSchema(
     if (version === OpenApiVersion.V2) {
       return generateSchema(await getJsonFromAST(genFrom, document, cache));
     } else {
-      if (getKey(genFrom) === "example") {
+      if (genFrom.getKey() === "example") {
         return generateSchema(await getJsonFromAST(genFrom, document, cache));
       } else {
         const values = [];
-        for (const exampleChild of getChildren(genFrom)) {
-          for (const contentChild of getChildren(exampleChild)) {
-            if (getKey(contentChild) === "value") {
+        for (const exampleChild of genFrom.getChildren()) {
+          for (const contentChild of exampleChild.getChildren()) {
+            if (contentChild.getKey() === "value") {
               values.push(await getJsonFromAST(contentChild, document, cache));
             }
           }
@@ -353,8 +346,8 @@ function getSchemaNames(root: Parsed, version: OpenApiVersion): Set<string> {
       ? findJsonNodeValue(root, "/definitions")
       : findJsonNodeValue(root, "/components/schemas");
   if (schemas) {
-    for (const schema of getChildren(schemas)) {
-      result.add(getKey(schema));
+    for (const schema of schemas.getChildren()) {
+      result.add(schema.getKey());
     }
   }
   return result;
@@ -363,24 +356,24 @@ function getSchemaNames(root: Parsed, version: OpenApiVersion): Set<string> {
 function getSchemaV2Examples(pointer: string, problem: string[], root: Parsed): any {
   if (hasId("response-schema-undefined", problem)) {
     const target = findJsonNodeValue(root, pointer);
-    if (target && isObject(target)) {
+    if (target && target.isObject()) {
       let schema: JsonNodeValue = null;
       let examples: JsonNodeValue = null;
-      for (const child of getChildren(target)) {
-        if (getKey(child) === "schema") {
+      for (const child of target.getChildren()) {
+        if (child.getKey() === "schema") {
           schema = child;
-        } else if (getKey(child) === "examples") {
+        } else if (child.getKey() === "examples") {
           examples = child;
         }
       }
       if (examples && !schema) {
-        const children = getChildren(examples);
+        const children = examples.getChildren();
         if (children.length === 1) {
           const child = children[0];
           if (
-            getKey(child) === "application/json" &&
-            isObject(child) &&
-            getChildren(child).length > 0
+            child.getKey() === "application/json" &&
+            child.isObject() &&
+            child.getChildren().length > 0
           ) {
             return child;
           }
@@ -394,11 +387,11 @@ function getSchemaV2Examples(pointer: string, problem: string[], root: Parsed): 
 function getSchemaV2Example(pointer: string, problem: string[], root: Parsed): any {
   if (hasId("schema-notype", problem)) {
     const target = findJsonNodeValue(root, pointer);
-    if (target && isObject(target) && getKey(target) === "schema") {
-      const children = getChildren(target);
+    if (target && target.isObject() && target.getKey() === "schema") {
+      const children = target.getChildren();
       if (children.length === 1) {
         const child = children[0];
-        if (getKey(child) === "example") {
+        if (child.getKey() === "example") {
           return child;
         }
       }
@@ -411,22 +404,22 @@ function getSchemaV3Examples(pointer: string, problem: string[], root: Parsed): 
   // FIXME doesn't handle $ref in the examples
   if (hasId("v3-mediatype-schema-undefined", problem)) {
     const target = findJsonNodeValue(root, pointer);
-    if (target && isObject(target) && getKey(target) === "application/json") {
+    if (target && target.isObject() && target.getKey() === "application/json") {
       let schema: JsonNodeValue = null;
       let examples: JsonNodeValue = null;
-      for (const child of getChildren(target)) {
-        if (getKey(child) === "schema") {
+      for (const child of target.getChildren()) {
+        if (child.getKey() === "schema") {
           schema = child;
-        } else if (getKey(child) === "examples") {
+        } else if (child.getKey() === "examples") {
           examples = child;
         }
       }
       if (examples && !schema) {
-        const children = getChildren(examples);
+        const children = examples.getChildren();
         if (children.length > 0) {
           for (const exampleChild of children) {
-            for (const contentChild of getChildren(exampleChild)) {
-              if (getKey(contentChild) === "value") {
+            for (const contentChild of exampleChild.getChildren()) {
+              if (contentChild.getKey() === "value") {
                 return examples;
               }
             }
@@ -441,11 +434,11 @@ function getSchemaV3Examples(pointer: string, problem: string[], root: Parsed): 
 function getSchemaV3Example(pointer: string, problem: string[], root: Parsed): any {
   if (hasId("v3-schema-notype", problem)) {
     const target = findJsonNodeValue(root, pointer);
-    if (target && isObject(target) && getKey(target) === "schema") {
-      const children = getChildren(target);
+    if (target && target.isObject() && target.getKey() === "schema") {
+      const children = target.getChildren();
       if (children.length === 1) {
         const child = children[0];
-        if (getKey(child) === "example") {
+        if (child.getKey() === "example") {
           return child;
         }
       }

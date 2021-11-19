@@ -1,8 +1,8 @@
 import assert from "assert";
 import { updateTitle } from "../../audit/quickfix";
 
-suite("Edit Update Title Test Suite", () => {
-  test("Test 1", () => {
+suite("Update Title", () => {
+  test("Title 1", () => {
     const titles = [];
     updateTitle(titles, "Create 'a' property");
     updateTitle(titles, "Create 'b' property");
@@ -10,7 +10,7 @@ suite("Edit Update Title Test Suite", () => {
     assert.strictEqual("Create 'a', 'b', 'c' properties", titles.join(", "));
   });
 
-  test("Test 2", () => {
+  test("Title 2", () => {
     const titles = [];
     updateTitle(titles, "Create 'a' property");
     updateTitle(titles, "Create 'b' property");
@@ -19,7 +19,7 @@ suite("Edit Update Title Test Suite", () => {
     assert.strictEqual("Create 'a', 'b' properties, '403', '404' responses", titles.join(", "));
   });
 
-  test("Test 3", () => {
+  test("Title 3", () => {
     const titles = [];
     updateTitle(titles, "Create 'a' property");
     updateTitle(titles, "Create 'b' property");
@@ -32,7 +32,7 @@ suite("Edit Update Title Test Suite", () => {
     );
   });
 
-  test("Test 4", () => {
+  test("Title 4", () => {
     const titles = [];
     updateTitle(titles, "Create 'a' property");
     updateTitle(titles, "Bla bla bla bla");
@@ -41,21 +41,21 @@ suite("Edit Update Title Test Suite", () => {
     assert.strictEqual("Create 'a' property, bla bla bla bla, set smth, foo", titles.join(", "));
   });
 
-  test("Test 5", () => {
+  test("Title 5", () => {
     const titles = [];
     updateTitle(titles, "Create 'a', 'b' properties");
     updateTitle(titles, "Create 'c' property");
     assert.strictEqual("Create 'a', 'b', 'c' properties", titles.join(", "));
   });
 
-  test("Test 6", () => {
+  test("Title 6", () => {
     const titles = [];
     updateTitle(titles, "Create 'a' property");
     updateTitle(titles, "Create 'b', 'c' properties");
     assert.strictEqual("Create 'a', 'b', 'c' properties", titles.join(", "));
   });
 
-  test("Test 7", () => {
+  test("Title 7", () => {
     const titles = [];
     updateTitle(titles, "Create 'a', 'b' properties");
     updateTitle(titles, "Create 'c', 'd' properties");

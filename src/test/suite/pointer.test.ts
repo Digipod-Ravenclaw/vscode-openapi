@@ -1,8 +1,8 @@
 import assert from "assert";
 import { getPointerChild, getPointerLastSegment, getPointerParent } from "../../pointer";
 
-suite("Edit Pointer Test Suite", () => {
-  test("Test getPointerLastSegment", () => {
+suite("Pointer", () => {
+  test("Method getPointerLastSegment", () => {
     assert.strictEqual(getPointerLastSegment("/a"), "a");
     assert.strictEqual(getPointerLastSegment("/a/b"), "b");
     assert.strictEqual(getPointerLastSegment("/a/0"), "0");
@@ -10,7 +10,7 @@ suite("Edit Pointer Test Suite", () => {
     assert.strictEqual(getPointerLastSegment("/a~1b~0c"), "a/b~c");
   });
 
-  test("Test getPointerParent", () => {
+  test("Method getPointerParent", () => {
     assert.strictEqual(getPointerParent("/a"), "");
     assert.strictEqual(getPointerParent("/a/b"), "/a");
     assert.strictEqual(getPointerParent("/a/0"), "/a");
@@ -18,7 +18,7 @@ suite("Edit Pointer Test Suite", () => {
     assert.strictEqual(getPointerParent("/a~1b~0c/foo"), "/a~1b~0c");
   });
 
-  test("Test getPointerChild", () => {
+  test("Method getPointerChild", () => {
     assert.strictEqual(getPointerChild("", "a"), "/a");
     assert.strictEqual(getPointerChild("/a", "b"), "/a/b");
     assert.strictEqual(getPointerChild("/a", "0"), "/a/0");

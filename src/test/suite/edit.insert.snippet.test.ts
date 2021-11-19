@@ -11,8 +11,8 @@ import {
 import { FixContext, FixType, InsertReplaceRenameFix } from "../../types";
 import { findJsonNodeValue } from "../../json-utils";
 
-suite("Edit Insert Node as Snippet Test Suite", () => {
-  test("Method insertJsonNode (key - value) test", async () => {
+suite("Insert Node (Snippet)", () => {
+  test("Method insertJsonNode (object)", async () => {
     const text = '{\n "a": {\n  "a1": "foo"\n },\n "c": [\n  1\n ]\n}';
     const expected = '{\n "a": {\n  "a1": "foo",\n  "a2": "baz"\n },\n "c": [\n  1\n ]\n}';
     const pointer = "/a";
@@ -54,7 +54,7 @@ suite("Edit Insert Node as Snippet Test Suite", () => {
     });
   });
 
-  test("Method insertJsonNode (array member) test", async () => {
+  test("Method insertJsonNode (array)", async () => {
     const text = '{\n "a": {\n  "a1": "foo"\n },\n "c": [\n  1\n ]\n}';
     // Windows insert snippet doesn't format correctly
     const expectedForWindows =
@@ -101,7 +101,7 @@ suite("Edit Insert Node as Snippet Test Suite", () => {
     });
   });
 
-  test("Method insertYamlNode (key - value) test", async () => {
+  test("Method insertYamlNode (object)", async () => {
     const text = "a:\n  a1: foo\nc:\n  - 1\n";
     const expected = "a:\n  a1: foo\n  a2: baz\nc:\n  - 1\n";
     const pointer = "/a";
@@ -143,7 +143,7 @@ suite("Edit Insert Node as Snippet Test Suite", () => {
     });
   });
 
-  test("Method insertYamlNode (array member) test", async () => {
+  test("Method insertYamlNode (array)", async () => {
     const text = "a:\n  a1: foo\nc:\n  - 1\n";
     const expected = "a:\n  a1: foo\nc:\n  - 1\n  - a2: baz\n";
     const pointer = "/c";

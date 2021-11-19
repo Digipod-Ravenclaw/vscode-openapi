@@ -6,8 +6,8 @@ import { FixContext, FixType, InsertReplaceRenameFix } from "../../types";
 import { readFileSync } from "fs";
 import { findJsonNodeValue } from "../../json-utils";
 
-suite("Edit Get Fix As String Test Suite", () => {
-  test("Method getFixAsJsonString test", async () => {
+suite("Get Fix As String", () => {
+  test("Method getFixAsJsonString", async () => {
     const text = readFileSync(resolve(__dirname, "../../../tests/xkcd.json"), { encoding: "utf8" });
 
     await withRandomFileEditor(text, "json", async (editor, doc) => {
@@ -71,7 +71,7 @@ suite("Edit Get Fix As String Test Suite", () => {
     });
   });
 
-  test("Method getFixAsYamlString test", async () => {
+  test("Method getFixAsYamlString", async () => {
     const text = readFileSync(resolve(__dirname, "../../../tests/xkcd.yaml"), { encoding: "utf8" });
 
     await withRandomFileEditor(text, "yaml", async (editor, doc) => {

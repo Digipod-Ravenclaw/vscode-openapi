@@ -10,7 +10,7 @@ import { readFileSync } from "fs";
 import { workspace, window, TextEditor, TextDocument } from "vscode";
 import { FixContext } from "../types";
 import { find, parseJson, parseYaml } from "@xliic/preserving-json-yaml-parser";
-import { findJsonNodeValue } from "../json-utils";
+import { findJsonNodeValue, JsonNodeValue } from "../json-utils";
 
 export function rndName() {
   return Math.random()
@@ -118,4 +118,14 @@ export function getContextUpdatedByPointer(context: FixContext, pointer: string)
 
 export function wrap(text: string): string {
   return text.replace(new RegExp("\r\n", "g"), "\n");
+}
+
+export function assertStrictNodesEqual(node1: JsonNodeValue, node2: JsonNodeValue) {
+  assert.strictEqual(node1.value, node2.value);
+  assert.strictEqual(node1.pointer, node2.pointer);
+}
+
+export function assertStrictNodeEqual(node: JsonNodeValue, value: any, pointer: string) {
+  assert.strictEqual(node.value, value);
+  assert.strictEqual(node.pointer, pointer);
 }

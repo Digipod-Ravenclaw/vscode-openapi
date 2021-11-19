@@ -39,7 +39,7 @@ import parameterSources from "./quickfix-sources";
 import { getLocationByPointer } from "./util";
 import { generateSchemaFixCommand, createGenerateSchemaAction } from "./quickfix-schema";
 import { simpleClone } from "@xliic/preserving-json-yaml-parser";
-import { findJsonNodeValue, getKeys, isObject } from "../json-utils";
+import { findJsonNodeValue } from "../json-utils";
 
 const registeredQuickFixes: { [key: string]: Fix } = {};
 
@@ -170,10 +170,10 @@ function transformInsertToReplaceIfExists(context: FixContext): boolean {
   const fix = <InsertReplaceRenameFix>context.fix;
   const keys = Object.keys(fix.fix);
 
-  if (isObject(target) && keys.length === 1) {
+  if (target.isObject() && keys.length === 1) {
     const insertingKey = keys[0];
-    for (let key of getKeys(target)) {
-      if (key === insertingKey) {
+    for (const child of target.getChildren()) {
+      if (child.getKey() === insertingKey) {
         context.target = findJsonNodeValue(
           context.root,
           `${context.target.pointer}/${insertingKey}`

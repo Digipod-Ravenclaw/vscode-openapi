@@ -6,8 +6,8 @@ import { deleteJsonNode, deleteYamlNode, safeParse } from "../../util";
 import { resolve } from "path";
 import { FixContext } from "../../types";
 
-suite("Edit Delete Node Test Suite", () => {
-  test("Methos deleteJsonNode test", async () => {
+suite("Delete Node", () => {
+  test("Method deleteJsonNode", async () => {
     const text = readFileSync(resolve(__dirname, "../../../tests/xhr.json"), { encoding: "utf8" });
     const expected =
       '{\n  "openapi": "3.0.0",\n  "servers": [\n    {\n      "url": "http://jsonplaceholder.typicode.com"\n    }\n  ]\n}\n';
@@ -49,7 +49,7 @@ suite("Edit Delete Node Test Suite", () => {
     });
   });
 
-  test("Methos deleteYamlNode test", async () => {
+  test("Method deleteYamlNode", async () => {
     const text = readFileSync(resolve(__dirname, "../../../tests/xkcd.yaml"), { encoding: "utf8" });
     const expected = "swagger: '2.0'\nschemes:\n  - https\nhost: xkcd.com\n\n";
 

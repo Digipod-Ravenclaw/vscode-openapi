@@ -7,8 +7,8 @@ import { resolve } from "path";
 import { FixContext, FixType, InsertReplaceRenameFix } from "../../types";
 import { findJsonNodeValue } from "../../json-utils";
 
-suite("Edit Rename Key Node Test Suite", () => {
-  test("Methos renameKeyNode (json) test", async () => {
+suite("Rename Key Node", () => {
+  test("Method renameKeyNode (JSON)", async () => {
     const text = readFileSync(resolve(__dirname, "../../../tests/xhr.json"), { encoding: "utf8" });
     const fix = {
       problem: ["xxx"],
@@ -47,7 +47,7 @@ suite("Edit Rename Key Node Test Suite", () => {
     });
   });
 
-  test("Methos renameKeyNode (yaml) test", async () => {
+  test("Method renameKeyNode (YAML)", async () => {
     const text = readFileSync(resolve(__dirname, "../../../tests/xkcd.yaml"), { encoding: "utf8" });
     const fix = {
       problem: ["xxx"],
