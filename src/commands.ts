@@ -13,8 +13,9 @@ import {
 import * as snippets from "./generated/snippets.json";
 import { Cache } from "./cache";
 import { Fix, FixContext, FixType, OpenApiVersion } from "./types";
-import { findJsonNodeValue, getLastSegmentFromPointer, getParentPointer } from "./json-utils";
+import { findJsonNodeValue } from "./json-utils";
 import { fixInsert } from "./audit/quickfix";
+import { getPointerLastSegment, getPointerParent } from "./pointer";
 
 const commands = {
   goToLine,
@@ -308,8 +309,8 @@ async function quickFixCommand(fix: Fix, cache: Cache) {
   let pointer = context.fix.pointer;
   let pointerPrefix = "";
   while (!find(root, pointer)) {
-    const key = getLastSegmentFromPointer(pointer);
-    pointer = getParentPointer(pointer);
+    const key = getPointerLastSegment(pointer);
+    pointer = getPointerParent(pointer);
     const tmpFix = {};
     if (isArray(key)) {
       tmpFix[key] = [finalFix];

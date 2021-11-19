@@ -2,7 +2,13 @@ import { getType } from "./audit/schema";
 import { Container, Location, Parsed } from "@xliic/preserving-json-yaml-parser/lib/types";
 import { getPreservedLocation } from "@xliic/preserving-json-yaml-parser/lib/preserve";
 import { find } from "@xliic/preserving-json-yaml-parser";
-import { joinJsonPointer, parseJsonPointer } from "./pointer";
+import {
+  getPointerChild,
+  getPointerLastSegment,
+  getPointerParent,
+  joinJsonPointer,
+  parseJsonPointer,
+} from "./pointer";
 
 export interface JsonNodeValue {
   value: any;
@@ -21,7 +27,7 @@ export function findJsonNodeValue(root: Parsed, pointer: string): JsonNodeValue 
 export function getChildren(node: JsonNodeValue, keepOrder?: boolean): JsonNodeValue[] {
   const children = [];
   for (const key of getKeys(node, keepOrder)) {
-    children.push({ value: node.value[key], pointer: generateChildPointer(node.pointer, key) });
+    children.push({ value: node.value[key], pointer: getPointerChild(node.pointer, key) });
   }
   return children;
 }
@@ -31,7 +37,7 @@ export function getDepth(node: JsonNodeValue): number {
 }
 
 export function getKey(node: JsonNodeValue): string {
-  return getLastSegmentFromPointer(node.pointer);
+  return getPointerLastSegment(node.pointer);
 }
 
 export function getValue(node: JsonNodeValue): string {
@@ -44,7 +50,7 @@ export function getRawValue(node: JsonNodeValue): string {
 
 export function getParent(root: Parsed, node: JsonNodeValue): JsonNodeValue {
   if (node.pointer !== "") {
-    const parentPointer = getParentPointer(node.pointer);
+    const parentPointer = getPointerParent(node.pointer);
     return { value: find(root, parentPointer), pointer: parentPointer };
   }
   return null;
@@ -97,7 +103,7 @@ export function next(root: Parsed, node: JsonNodeValue): JsonNodeValue {
     if (myKey === keys[i] && node.value === parent.value[keys[i]]) {
       return {
         value: parent.value[keys[i + 1]],
-        pointer: generateChildPointer(parent.pointer, keys[i + 1]),
+        pointer: getPointerChild(parent.pointer, keys[i + 1]),
       };
     }
   }
@@ -112,7 +118,7 @@ export function prev(root: Parsed, node: JsonNodeValue): JsonNodeValue {
     if (myKey === keys[i] && node.value === parent.value[keys[i]]) {
       return {
         value: parent.value[keys[i - 1]],
-        pointer: generateChildPointer(parent.pointer, keys[i - 1]),
+        pointer: getPointerChild(parent.pointer, keys[i - 1]),
       };
     }
   }
@@ -159,21 +165,6 @@ export function getKeys(node: JsonNodeValue, keepOrder?: boolean): any[] {
     keys.sort(comparator(node.value as Container));
   }
   return keys;
-}
-
-export function getLastSegmentFromPointer(pointer: string): string {
-  const segments = parseJsonPointer(pointer);
-  return segments[segments.length - 1];
-}
-
-export function getParentPointer(pointer: string): string {
-  return pointer.substring(0, pointer.lastIndexOf("/"));
-}
-
-function generateChildPointer(pointer: string, key: string): string {
-  const segments = parseJsonPointer(pointer);
-  segments.push(key);
-  return joinJsonPointer(segments);
 }
 
 function comparator(container: Container) {
