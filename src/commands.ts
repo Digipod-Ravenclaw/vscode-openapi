@@ -171,95 +171,95 @@ async function createNewThreeYaml(cache: Cache) {
   await createNew(snippets.newVersionThreeYaml, "yaml");
 }
 
-async function addBasePath(cache: Cache) {
+export async function addBasePath(cache: Cache) {
   await quickFixCommand(registeredSnippetQuickFixes["basePath"], cache);
 }
 
-async function addHost(cache: Cache) {
+export async function addHost(cache: Cache) {
   await quickFixCommand(registeredSnippetQuickFixes["host"], cache);
 }
 
-async function addInfo(cache: Cache) {
+export async function addInfo(cache: Cache) {
   await quickFixCommand(registeredSnippetQuickFixes["info"], cache);
 }
 
-async function v3addInfo(cache: Cache) {
+export async function v3addInfo(cache: Cache) {
   await quickFixCommand(registeredSnippetQuickFixes["info"], cache);
 }
 
-async function addPath(cache: Cache) {
+export async function addPath(cache: Cache) {
   await quickFixCommand(registeredSnippetQuickFixes["path"], cache);
 }
 
-async function addSecurityDefinitionBasic(cache: Cache) {
+export async function addSecurityDefinitionBasic(cache: Cache) {
   await quickFixCommand(registeredSnippetQuickFixes["securityBasic"], cache);
 }
 
-async function addSecurityDefinitionOauth2Access(cache: Cache) {
+export async function addSecurityDefinitionOauth2Access(cache: Cache) {
   await quickFixCommand(registeredSnippetQuickFixes["securityOauth2Implicit"], cache);
 }
 
-async function addSecurityDefinitionApiKey(cache: Cache) {
+export async function addSecurityDefinitionApiKey(cache: Cache) {
   await quickFixCommand(registeredSnippetQuickFixes["securityApiKey"], cache);
 }
 
-async function addSecurity(cache: Cache) {
+export async function addSecurity(cache: Cache) {
   await quickFixCommand(registeredSnippetQuickFixes["security"], cache);
 }
 
-async function addDefinitionObject(cache: Cache) {
+export async function addDefinitionObject(cache: Cache) {
   await quickFixCommand(registeredSnippetQuickFixes["definitionObject"], cache);
 }
 
-async function addParameterPath(cache: Cache) {
+export async function addParameterPath(cache: Cache) {
   await quickFixCommand(registeredSnippetQuickFixes["parameterPath"], cache);
 }
 
-async function addParameterBody(cache: Cache) {
+export async function addParameterBody(cache: Cache) {
   await quickFixCommand(registeredSnippetQuickFixes["parameterBody"], cache);
 }
 
-async function addParameterOther(cache: Cache) {
+export async function addParameterOther(cache: Cache) {
   await quickFixCommand(registeredSnippetQuickFixes["parameterOther"], cache);
 }
 
-async function addResponse(cache: Cache) {
+export async function addResponse(cache: Cache) {
   await quickFixCommand(registeredSnippetQuickFixes["response"], cache);
 }
 
-async function v3addComponentsResponse(cache: Cache) {
+export async function v3addComponentsResponse(cache: Cache) {
   await quickFixCommand(registeredSnippetQuickFixes["componentsResponse"], cache);
 }
 
-async function v3addComponentsParameter(cache: Cache) {
+export async function v3addComponentsParameter(cache: Cache) {
   await quickFixCommand(registeredSnippetQuickFixes["componentsParameter"], cache);
 }
 
-async function v3addComponentsSchema(cache: Cache) {
+export async function v3addComponentsSchema(cache: Cache) {
   await quickFixCommand(registeredSnippetQuickFixes["componentsSchema"], cache);
 }
 
-async function v3addSecuritySchemeBasic(cache: Cache) {
+export async function v3addSecuritySchemeBasic(cache: Cache) {
   await quickFixCommand(registeredSnippetQuickFixes["componentsSecurityBasic"], cache);
 }
 
-async function v3addSecuritySchemeApiKey(cache: Cache) {
+export async function v3addSecuritySchemeApiKey(cache: Cache) {
   await quickFixCommand(registeredSnippetQuickFixes["componentsSecurityApiKey"], cache);
 }
 
-async function v3addSecuritySchemeJWT(cache: Cache) {
+export async function v3addSecuritySchemeJWT(cache: Cache) {
   await quickFixCommand(registeredSnippetQuickFixes["componentsSecurityJwt"], cache);
 }
 
-async function v3addSecuritySchemeOauth2Access(cache: Cache) {
+export async function v3addSecuritySchemeOauth2Access(cache: Cache) {
   await quickFixCommand(registeredSnippetQuickFixes["componentsSecurityOauth2Implicit"], cache);
 }
 
-async function v3addServer(cache: Cache) {
+export async function v3addServer(cache: Cache) {
   await quickFixCommand(registeredSnippetQuickFixes["server"], cache);
 }
 
-async function addOperation(cache: Cache, node: any) {
+export async function addOperation(cache: Cache, node: any) {
   await quickFixCommand(registeredSnippetQuickFixes["operation"], cache);
 }
 

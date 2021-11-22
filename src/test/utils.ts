@@ -8,9 +8,65 @@ import { TestFS } from "./memfs";
 import * as assert from "assert";
 import { readFileSync } from "fs";
 import { workspace, window, TextEditor, TextDocument } from "vscode";
-import { FixContext } from "../types";
+import { FixContext, FixType } from "../types";
 import { find, parseJson, parseYaml } from "@xliic/preserving-json-yaml-parser";
 import { findJsonNodeValue, JsonNodeValue } from "../json-utils";
+import { getFixAsJsonString, renameKeyNode, replaceJsonNode, safeParse } from "../util";
+
+export async function replaceKey(editor: vscode.TextEditor, pointer: string, key: string) {
+  const root = safeParse(editor.document.getText(), editor.document.languageId);
+  const context: FixContext = {
+    editor: editor,
+    edit: null,
+    issues: [],
+    fix: {
+      problem: ["x"],
+      title: "x",
+      type: FixType.RenameKey,
+      fix: key,
+    },
+    bulk: false,
+    snippet: false,
+    auditContext: null,
+    version: null,
+    bundle: null,
+    root: root,
+    target: findJsonNodeValue(root, pointer),
+    document: editor.document,
+  };
+
+  const edit = new vscode.WorkspaceEdit();
+  edit.replace(editor.document.uri, renameKeyNode(context), getFixAsJsonString(context));
+  await vscode.workspace.applyEdit(edit);
+}
+
+export async function replaceValue(editor: vscode.TextEditor, pointer: string, value: string) {
+  const root = safeParse(editor.document.getText(), editor.document.languageId);
+  const context: FixContext = {
+    editor: editor,
+    edit: null,
+    issues: [],
+    fix: {
+      problem: ["x"],
+      title: "x",
+      type: FixType.Replace,
+      fix: value,
+    },
+    bulk: false,
+    snippet: false,
+    auditContext: null,
+    version: null,
+    bundle: null,
+    root: root,
+    target: findJsonNodeValue(root, pointer),
+    document: editor.document,
+  };
+
+  const edit = new vscode.WorkspaceEdit();
+  const [fixAsString, range] = replaceJsonNode(context, getFixAsJsonString(context));
+  edit.replace(editor.document.uri, range, fixAsString);
+  await vscode.workspace.applyEdit(edit);
+}
 
 export function rndName() {
   return Math.random()
