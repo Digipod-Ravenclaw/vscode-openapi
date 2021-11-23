@@ -11,7 +11,13 @@ import { workspace, window, TextEditor, TextDocument } from "vscode";
 import { FixContext, FixType } from "../types";
 import { find, parseJson, parseYaml } from "@xliic/preserving-json-yaml-parser";
 import { findJsonNodeValue, JsonNodeValue } from "../json-utils";
-import { getFixAsJsonString, renameKeyNode, replaceJsonNode, safeParse } from "../util";
+import {
+  getFixAsJsonString,
+  getFixAsYamlString,
+  renameKeyNode,
+  replaceJsonNode,
+  safeParse,
+} from "../util";
 
 export async function replaceKey(editor: vscode.TextEditor, pointer: string, key: string) {
   const root = safeParse(editor.document.getText(), editor.document.languageId);
@@ -36,7 +42,11 @@ export async function replaceKey(editor: vscode.TextEditor, pointer: string, key
   };
 
   const edit = new vscode.WorkspaceEdit();
-  edit.replace(editor.document.uri, renameKeyNode(context), getFixAsJsonString(context));
+  if (editor.document.languageId === "json") {
+    edit.replace(editor.document.uri, renameKeyNode(context), getFixAsJsonString(context));
+  } else {
+    edit.replace(editor.document.uri, renameKeyNode(context), getFixAsYamlString(context));
+  }
   await vscode.workspace.applyEdit(edit);
 }
 

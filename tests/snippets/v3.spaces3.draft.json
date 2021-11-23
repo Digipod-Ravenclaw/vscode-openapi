@@ -7,5 +7,6 @@
       "responses": {},
       "securitySchemes": {
       }
-   }
+   },
+   "paths": {}
 }

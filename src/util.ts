@@ -225,7 +225,7 @@ export function insertYamlNode(context: FixContext, value: string): [string, vsc
   if (target.isObject()) {
     anchor = getAnchor(context, false);
   }
-
+  let index = 0;
   let newLine = "";
   if (anchor) {
     [start, end] = anchor.getRange(root);
@@ -246,9 +246,9 @@ export function insertYamlNode(context: FixContext, value: string): [string, vsc
         position = new vscode.Position(position.line + 1, 0);
       }
     }
+    index = getCurrentIndent(document, start);
   }
 
-  const index = getCurrentIndent(document, start);
   const indent = getBasicIndent(document, root);
 
   if (target.isObject()) {

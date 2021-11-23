@@ -260,7 +260,9 @@ export async function v3addServer(cache: Cache) {
 }
 
 export async function addOperation(cache: Cache, node: any) {
-  await quickFixCommand(registeredSnippetQuickFixes["operation"], cache);
+  const fix = registeredSnippetQuickFixes["operation"];
+  fix.pointer = joinJsonPointer(["paths", node.parent.key]);
+  await quickFixCommand(fix, cache);
 }
 
 function noActiveOpenApiEditorGuard(cache: Cache) {

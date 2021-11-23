@@ -77,6 +77,12 @@ suite("Snippets For JSON", () => {
       await replaceValue(editor, "/servers/0/url", "https://elvis.bom/v1");
       await v3addServer(cache);
 
+      await addPath(cache);
+      await replaceKey(editor, "/paths/~1name", "/path1");
+      await replaceKey(editor, "/paths/~1path1/get", "put");
+      await addOperation(cache, { parent: { key: "/path1" } });
+      await addPath(cache);
+
       assert.ok(doc.isDirty);
       assert.strictEqual(doc.getText(), expected);
     });
@@ -120,6 +126,12 @@ suite("Snippets For JSON", () => {
       await v3addServer(cache);
       await replaceValue(editor, "/servers/0/url", "https://elvis.bom/v1");
       await v3addServer(cache);
+
+      await addPath(cache);
+      await replaceKey(editor, "/paths/~1name", "/path1");
+      await replaceKey(editor, "/paths/~1path1/get", "put");
+      await addOperation(cache, { parent: { key: "/path1" } });
+      await addPath(cache);
 
       assert.ok(doc.isDirty);
       assert.strictEqual(doc.getText(), expected);
@@ -168,8 +180,10 @@ suite("Snippets For JSON", () => {
       await replaceKey(editor, "/responses/code", "200");
       await addResponse(cache);
 
-      //await addOperation(cache: Cache, node: any);
-      //console.info(doc.getText());
+      await replaceKey(editor, "/paths/~1name", "/path1");
+      await replaceKey(editor, "/paths/~1path1/get", "put");
+      await addOperation(cache, { parent: { key: "/path1" } });
+      await addPath(cache);
 
       assert.ok(doc.isDirty);
       assert.strictEqual(doc.getText(), expected);
@@ -220,8 +234,10 @@ suite("Snippets For JSON", () => {
       await replaceKey(editor, "/responses/code", "200");
       await addResponse(cache);
 
-      //await addOperation(cache: Cache, node: any);
-      //console.info(doc.getText());
+      await replaceKey(editor, "/paths/~1name", "/path1");
+      await replaceKey(editor, "/paths/~1path1/get", "put");
+      await addOperation(cache, { parent: { key: "/path1" } });
+      await addPath(cache);
 
       assert.ok(doc.isDirty);
       assert.strictEqual(doc.getText(), expected);

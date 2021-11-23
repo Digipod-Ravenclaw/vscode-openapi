@@ -247,11 +247,10 @@ export class SecurityOutlineProvider extends OutlineProvider {
   }
 
   getLabel(node: Node): string {
-    // FIXME
-    //const children = node.getChildren();
-    //if (children[0]) {
-    //  return children[0].getKey();
-    //}
+    const keys = Object.keys(node.value);
+    if (keys[0]) {
+      return keys[0];
+    }
     return "<unknown>";
   }
 }
@@ -269,19 +268,7 @@ export class ServersOutlineProvider extends OutlineProvider {
   }
 
   getLabel(node: Node): string {
-    // FIXME
-    /*
-    for (const child of node.getChildren()) {
-      if (child.getKey() === "url") {
-        const label = child.getValue();
-        if (!label) {
-          return "<unknown>";
-        }
-        return label;
-      }
-    }
-    */
-    return "<unknown>";
+    return node.value && node.value.url ? node.value.url : "<unknown>";
   }
 }
 
