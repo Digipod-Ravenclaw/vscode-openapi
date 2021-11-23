@@ -7,6 +7,8 @@ import * as vscode from "vscode";
 import { ExplorerNode } from "./explorer/nodes";
 import { CollectionsProvider } from "./explorer/provider";
 
+export const platformUriScheme = "openapi-42crunch";
+
 export interface ListCollectionsResponse {
   list: CollectionData[];
 }

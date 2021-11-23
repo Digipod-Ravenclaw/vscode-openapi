@@ -3,12 +3,11 @@ import { stringify } from "@xliic/preserving-json-yaml-parser";
 
 import { Cache } from "../cache";
 import { AuditContext } from "../types";
-import { Editor } from "./editor";
 import { ApiNode, CollectionNode, FavoriteCollectionNode } from "./explorer/nodes";
 import { PlatformContext } from "./types";
 import { PlatformStore } from "./stores/platform-store";
 import { CollectionsProvider } from "./explorer/provider";
-import { confirmed } from "./util";
+import { confirmed, makePlatformUri } from "./util";
 import { FavoritesStore } from "./stores/favorites-store";
 
 export function registerCommands(
@@ -22,15 +21,10 @@ export function registerCommands(
 ): vscode.Disposable[] {
   const { explorer } = platformContext;
 
-  vscode.commands.registerCommand("openapi.platform.editApi", (apiId) => {
-    const editor = new Editor(apiId, context, auditContext, cache, platformContext);
-
-    // unsubscribe?
-    const disposable = vscode.workspace.onDidSaveTextDocument((document) => {
-      editor.onDidSaveTextDocument(document);
-    });
-
-    editor.show();
+  vscode.commands.registerCommand("openapi.platform.editApi", async (apiId) => {
+    const uri = makePlatformUri(apiId);
+    const document = await vscode.workspace.openTextDocument(uri);
+    await vscode.window.showTextDocument(document);
   });
 
   vscode.commands.registerCommand("openapi.platform.createCollection", async () => {

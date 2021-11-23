@@ -5,6 +5,9 @@ import {
   deleteCollection,
   listApis,
   listCollections,
+  readApi,
+  readAuditReport,
+  updateApi,
 } from "../api";
 import { Api, CollectionData, PlatformContext } from "../types";
 
@@ -37,6 +40,10 @@ export class PlatformStore {
     return api;
   }
 
+  async updateApi(apiId: string, content: Buffer): Promise<void> {
+    await updateApi(apiId, content, this.context.connection, this.context.logger);
+  }
+
   async deleteCollection(collectionId: string): Promise<void> {
     await deleteCollection(collectionId, this.context.connection, this.context.logger);
   }
@@ -48,6 +55,17 @@ export class PlatformStore {
   async getApis(collectionId: string): Promise<Api[]> {
     const response = await listApis(collectionId, this.context.connection, this.context.logger);
     return response.list;
+  }
+
+  async getApi(apiId: string): Promise<Api> {
+    const api = await readApi(apiId, this.context.connection, this.context.logger);
+    return api;
+  }
+
+  async getAuditReport(apiId: string): Promise<any> {
+    // FIXME track api updates and make sure to get the latest audit report
+    const report = await readAuditReport(apiId, this.context.connection, this.context.logger);
+    return report;
   }
 
   refresh(): void {}

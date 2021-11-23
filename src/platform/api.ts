@@ -117,7 +117,7 @@ export async function readApi(
   return body;
 }
 
-export async function readAssessmentReport(
+export async function readAuditReport(
   apiId: string,
   options: PlatformConnection,
   logger: Logger

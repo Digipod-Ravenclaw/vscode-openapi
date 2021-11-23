@@ -7,11 +7,16 @@ import * as vscode from "vscode";
 import { Cache } from "../cache";
 import { configuration } from "../configuration";
 import { CollectionsProvider } from "./explorer/provider";
-import { PlatformContext } from "./types";
+import { PlatformContext, platformUriScheme } from "./types";
 import { AuditContext } from "../types";
 import { registerCommands } from "./commands";
 import { PlatformStore } from "./stores/platform-store";
 import { FavoritesStore } from "./stores/favorites-store";
+import { PlatformFS } from "./fs-provider";
+import { getApiId, isPlatformUri } from "./util";
+import { parseAuditReport, updateAuditContext } from "../audit/audit";
+import { setDecorations, updateDecorations } from "../audit/decoration";
+import { updateDiagnostics } from "../audit/diagnostic";
 
 export function activate(
   context: vscode.ExtensionContext,
@@ -54,18 +59,44 @@ export function activate(
     treeDataProvider: platformContext.explorer.provider,
   });
 
-  /*
-  vscode.commands.registerCommand("openapi.platform.editApi", (apiId) => {
-    const editor = new Editor(apiId, context, auditContext, cache, platformContext);
+  // TODO unsubscribe?
 
-    // unsubscribe?
-    const disposable = vscode.workspace.onDidSaveTextDocument((document) => {
-      editor.onDidSaveTextDocument(document);
-    });
+  async function refreshAuditReport(document: vscode.TextDocument) {
+    if (isPlatformUri(document.uri)) {
+      const uri = document.uri.toString();
+      const apiId = getApiId(document.uri);
+      const report = await store.getAuditReport(apiId);
 
-    editor.show();
+      const audit = await parseAuditReport(cache, document, report, {
+        value: { uri, hash: null },
+        children: {},
+      });
+
+      if (audit) {
+        updateAuditContext(auditContext, uri, audit);
+        updateDecorations(auditContext.decorations, audit.summary.documentUri, audit.issues);
+        updateDiagnostics(auditContext.diagnostics, audit.filename, audit.issues);
+      }
+    }
+  }
+
+  const disposable1 = vscode.workspace.onDidSaveTextDocument(refreshAuditReport);
+  const disposable2 = vscode.workspace.onDidOpenTextDocument(refreshAuditReport);
+  const disposable3 = vscode.workspace.onDidSaveTextDocument((document) => {
+    if (isPlatformUri(document.uri)) {
+      // when API is saved, it's score might change so we need to refresh
+      // explorer that shows API score
+      vscode.commands.executeCommand("openapi.platform.refreshCollections");
+    }
   });
-  */
+
+  const platformFs = new PlatformFS(cache, store);
+
+  context.subscriptions.push(
+    vscode.workspace.registerFileSystemProvider(platformUriScheme, platformFs, {
+      isCaseSensitive: true,
+    })
+  );
 
   registerCommands(
     context,
