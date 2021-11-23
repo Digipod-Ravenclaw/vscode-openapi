@@ -10,8 +10,7 @@ import { Node } from "@xliic/openapi-ast-node";
 export function updateDiagnostics(
   diagnostics: vscode.DiagnosticCollection,
   filename: string,
-  issues,
-  textEditor: vscode.TextEditor
+  issues
 ): vscode.DiagnosticCollection {
   for (const uri of Object.keys(issues)) {
     diagnostics.set(vscode.Uri.parse(uri), createDiagnosticsForUri(filename, uri, issues[uri]));

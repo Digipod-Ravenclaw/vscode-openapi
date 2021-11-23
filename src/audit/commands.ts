@@ -41,7 +41,7 @@ export function registerSecurityAudit(
         if (audit) {
           updateAuditContext(auditContext, uri, audit);
           updateDecorations(auditContext.decorations, audit.summary.documentUri, audit.issues);
-          updateDiagnostics(auditContext.diagnostics, audit.filename, audit.issues, textEditor);
+          updateDiagnostics(auditContext.diagnostics, audit.filename, audit.issues);
           setDecorations(textEditor, auditContext);
 
           ReportWebView.show(context.extensionPath, audit, cache);
