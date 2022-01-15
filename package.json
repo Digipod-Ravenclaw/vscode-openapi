@@ -586,7 +586,7 @@
     "esm": "^3.2.25",
     "glob": "^7.1.4",
     "json-schema": "^0.2.5",
-    "marked": "^0.7.0",
+    "marked": "^4.0.10",
     "mobx": "^6.1.7",
     "mocha": "^8.3.0",
     "node-polyfill-webpack-plugin": "^1.0.3",
